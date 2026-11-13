@@ -7894,3 +7894,40 @@
   .rc-card-preview > div { flex: 1 1 auto; }
   .rc-card-preview .sparkline { width: 100%; height: 30px; flex: 1 1 100%; }
 }
+
+/* Formulação (nutrição): alinhamento */
+@media screen {
+  /* Lista de formulações e botões na mesma linha e na mesma altura */
+  .nutrition-page .nutrition-actions { align-items: center; margin: 4px 0 0; }
+  .nutrition-page .nutrition-actions > * { margin: 0 !important; }
+  .nutrition-page .nutrition-actions select { height: 46px; min-height: 46px; }
+  .nutrition-page .nutrition-actions button { height: 46px; min-height: 46px; }
+
+  /* Campos alinhados pela base: se um rótulo quebra em duas linhas, os campos da linha continuam alinhados */
+  .nutrition-page .form-grid { align-items: end; }
+  .nutrition-page .form-grid > .field { display: flex; height: 100%; flex-direction: column; justify-content: flex-end; gap: 6px; margin: 0; }
+  .nutrition-page .form-grid > .field > input,
+  .nutrition-page .form-grid > .field > select,
+  .nutrition-page .form-grid > .field > textarea { margin-top: 0; }
+  .nutrition-page .form-grid > .field input,
+  .nutrition-page .form-grid > .field select { height: 44px; min-height: 44px; }
+}
+
+@media screen {
+  /* Limites de nutrientes: "Retirar limite" na altura dos campos; botões alinhados à esquerda */
+  .nutrition-page .nutrition-bound { align-items: end; }
+  .nutrition-page .nutrition-bound > .row-button { display: inline-flex; height: 44px; align-items: center; align-self: end; margin: 0; }
+  .nutrition-page .nutrition-edit-fields > .secondary-button { margin: 0; }
+  .nutrition-page .nutrition-edit-fields + .nutrition-actions { margin-top: 12px; }
+  .nutrition-page .nutrition-actions .primary-button,
+  .nutrition-page .nutrition-actions .secondary-button { margin: 0; }
+}
+
+@media screen {
+  .nutrition-page .nutrition-bound input,
+  .nutrition-page .nutrition-bound select { height: 44px; min-height: 44px; }
+}
+
+@media screen {
+  .nutrition-page .nutrition-bound > label.field { margin: 0; }
+}
