@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { QuoteEditingContext, type QuoteEditingContextValue } from "./QuoteEditingContext";
 import { useAuth } from "./AuthProvider";
 import { CalculatorPage } from "../features/calculator/CalculatorPage";
@@ -6,8 +7,29 @@ import { CommercialPolicyPage } from "../features/commercial-policy/CommercialPo
 import { DiscountsPage } from "../features/discounts/DiscountsPage";
 import { FreightPage } from "../features/freight/FreightPage";
 import { ProductsPage } from "../features/pricing/ProductsPage";
-import { AppHeader } from "../layouts/AppHeader";
-import { AppSidebar, canAccessTab, tabLabels, type TabId } from "../layouts/AppSidebar";
+import { AppHeader, PageHeading } from "../layouts/AppHeader";
+import { AppSidebar, canAccessTab, tabGroups, tabLabels, type TabId } from "../layouts/AppSidebar";
+import { MobileNav } from "../layouts/MobileNav";
+import { PageKpis } from "../components/demo/PageKpis";
+import { QuoteRowOpener } from "../components/demo/QuoteRowOpener";
+import { RowClickToEdit } from "../components/demo/RowClickToEdit";
+import { LoadsRowOpener } from "../components/demo/LoadViewer3D";
+import { CommandPalette } from "../components/demo/CommandPalette";
+import { AlertsPanel } from "../components/demo/AlertsPanel";
+import { demoAlerts } from "../demo/kpis/alerts";
+import { useDemoTables } from "../demo/app/useDemoTables";
+import { today as demoToday } from "../demo/store/ids";
+import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { ChecklistPage } from "../features/checklist/ChecklistPage";
+import { YardPage } from "../features/yard/YardPage";
+import { FinancePage } from "../features/erp/FinancePage";
+import { FiscalPage } from "../features/erp/FiscalPage";
+import { CreditPage } from "../features/erp/CreditPage";
+import { FleetPage } from "../features/erp/FleetPage";
+import { ProductionPage } from "../features/erp/ProductionPage";
+import { ApprovalsPage } from "../features/erp/ApprovalsPage";
+import { NavigationContext } from "./NavigationContext";
+import { useDemoBadges } from "../demo/app/useDemoBadges";
 import { PaymentTermsPage } from "../pages/PaymentTermsPage";
 import { ProfilesPage } from "../features/auth/ProfilesPage";
 import { CustomersPage } from "../features/customers/CustomersPage";
@@ -17,7 +39,19 @@ import { UpdatesPage } from "../features/updates/UpdatesPage";
 import { VisitsPage } from "../features/visits/VisitsPage";
 import { LoadsPage } from "../features/loads/LoadsPage";
 
+import { NutritionPage } from "../features/nutrition/NutritionPage";
+
 const tabContent: Record<TabId, () => React.JSX.Element> = {
+  dashboard: DashboardPage,
+  checklist: ChecklistPage,
+  yard: YardPage,
+  finance: FinancePage,
+  fiscal: FiscalPage,
+  credit: CreditPage,
+  fleet: FleetPage,
+  production: ProductionPage,
+  nutrition: NutritionPage,
+  approvals: ApprovalsPage,
   calculator: CalculatorPage,
   discounts: DiscountsPage,
   terms: PaymentTermsPage,
@@ -35,14 +69,42 @@ const tabContent: Record<TabId, () => React.JSX.Element> = {
 
 export function App() {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>("calculator");
+  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+  // Tela de onde se veio ao abrir a Calculadora (ex.: editar um orçamento), para o botão "Voltar".
+  const [backTo, setBackTo] = useState<TabId | null>(null);
+  const activeRef = useRef<TabId>("dashboard");
+  activeRef.current = activeTab;
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem("qualinutri-demo:sidebar") === "collapsed"; } catch { return false; }
+  });
+  const badges = useDemoBadges();
+  // Ao rolar a página, a barra vira a pílula flutuante só com o logo.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 140);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const demoTables = useDemoTables();
+  const alerts = useMemo(() => demoAlerts(demoTables, demoToday()), [demoTables]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [pendingQuoteId, setPendingQuoteId] = useState<string | null>(null);
   const [pendingCustomer, setPendingCustomer] = useState<QuoteEditingContextValue["pendingCustomer"]>(null);
   const ActivePage = tabContent[activeTab];
 
   useEffect(() => {
-    if (!canAccessTab(activeTab, profile)) setActiveTab("calculator");
+    if (!canAccessTab(activeTab, profile)) setActiveTab("dashboard");
   }, [activeTab, profile]);
 
   /** Fecha o menu e devolve o foco ao botão que o abriu. */
@@ -83,7 +145,16 @@ export function App() {
     document.querySelector<HTMLElement>("main.page")?.focus({ preventScroll: true });
   }, [activeTab]);
 
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      try { localStorage.setItem("qualinutri-demo:sidebar", current ? "expanded" : "collapsed"); } catch { /* sem armazenamento */ }
+      return !current;
+    });
+  }
+
   function changeTab(tab: TabId) {
+    const from = activeRef.current;
+    setBackTo(tab === "calculator" && from !== "calculator" ? from : null);
     setActiveTab(tab);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -105,20 +176,36 @@ export function App() {
   }), [pendingQuoteId, pendingCustomer]);
 
   return (
+    <NavigationContext.Provider value={changeTab}>
     <QuoteEditingContext.Provider value={quoteEditing}>
-    <div className="app-layout">
-      <AppSidebar activeTab={activeTab} open={menuOpen} onChange={changeTab} onClose={closeMenu} />
+    <div className={`app-layout${collapsed ? " is-collapsed" : ""}`}>
+      <div className="app-backdrop" aria-hidden="true"><span /><span /><span /></div>
+      <AppSidebar activeTab={activeTab} open={menuOpen} badges={badges} onChange={changeTab} onClose={closeMenu} />
       <div className="app-main" inert={menuOpen || undefined}>
-        <AppHeader title={tabLabels[activeTab]} menuOpen={menuOpen} onToggleMenu={() => setMenuOpen((open) => !open)} />
+        <AppHeader activeTab={activeTab} menuOpen={menuOpen} collapsed={collapsed || scrolled} onExpand={() => { if (collapsed) toggleCollapsed(); if (scrolled) window.scrollTo({ top: 0, behavior: "smooth" }); }} badges={badges} onNavigate={changeTab} onToggleMenu={() => setMenuOpen((open) => !open)} onToggleCollapsed={toggleCollapsed} alertCount={alerts.length} onOpenSearch={() => setSearchOpen(true)} onOpenAlerts={() => setAlertsOpen(true)} />
         <main id={`panel-${activeTab}`} className={`page page-${activeTab}`} tabIndex={-1}>
-          {activeTab !== "calculator" && <ActivePage />}
+          <PageHeading key={`h-${activeTab}`} title={tabLabels[activeTab]} group={tabGroups[activeTab]} />
+          {activeTab !== "dashboard" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
+          {activeTab !== "calculator" && <div className="page-enter" key={activeTab}><ActivePage /></div>}
+          <RowClickToEdit />
+          {activeTab === "quotes" && <QuoteRowOpener />}
+          {activeTab === "loads" && <LoadsRowOpener />}
           {/* A Calculadora fica montada (só escondida) para o pedido em montagem não se perder ao trocar de página. */}
-          <div hidden={activeTab !== "calculator"}>
+          {activeTab === "calculator" && backTo && (
+            <button type="button" className="back-chip glass-dark" onClick={() => changeTab(backTo)}>
+              <ArrowLeft size={16} aria-hidden="true" /> Voltar para {tabLabels[backTo]}
+            </button>
+          )}
+          <div hidden={activeTab !== "calculator"} className={activeTab === "calculator" ? "page-enter" : undefined}>
             <CalculatorPage />
           </div>
         </main>
+        <MobileNav activeTab={activeTab} onChange={changeTab} onOpenMenu={() => setMenuOpen(true)} />
+        {searchOpen && <CommandPalette onNavigate={changeTab} onClose={() => setSearchOpen(false)} />}
+        {alertsOpen && <AlertsPanel alerts={alerts} onNavigate={changeTab} onClose={() => setAlertsOpen(false)} />}
       </div>
     </div>
     </QuoteEditingContext.Provider>
+    </NavigationContext.Provider>
   );
 }

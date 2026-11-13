@@ -11,33 +11,14 @@ Aplicação interna para consulta da política comercial, cálculo de pedidos e 
 
 ## Configuração local
 
-Requisitos: Node.js compatível com Vite 8 e acesso ao projeto Supabase.
+Requisito: Node.js compatível com Vite 8.
 
 ```bash
-npm install
-cp .env.example .env.local
+npm ci
 npm run dev
 ```
 
-Preencha `.env.local` com a URL e a chave pública do projeto. Nunca use `service_role` ou outra chave secreta no frontend.
-
-## Acesso e usuários
-
-O acesso usa login e senha; nenhum e-mail pessoal é solicitado. O login aceita de 3 a 32 caracteres, usando letras sem acento, números, ponto, hífen ou sublinhado.
-
-O cadastro público está desabilitado. Novas contas são criadas exclusivamente por um administrador autenticado, na área **Usuários e permissões**, com nome, login, senha temporária, perfil e estado ativo/inativo.
-
-No primeiro login, o usuário fica restrito à tela de definição de senha. A aplicação só é liberada depois que ele informa e confirma sua própria senha.
-
-Se um usuário esquecer a senha, um administrador pode selecionar **Redefinir senha** na listagem, informar uma nova senha temporária e devolver o acesso. O mesmo fluxo obrigatório de definição de senha permanente será apresentado no login seguinte.
-
-Papéis disponíveis:
-
-- `administrador`: usuários, dados comerciais, clientes e orçamentos;
-- `comercial`: clientes e orçamentos;
-- `consulta`: catálogo, tabelas e política.
-
-O banco impede que o último administrador ativo seja desativado, rebaixado ou excluído.
+A demonstração abre direto na calculadora e usa um catálogo fictício. Ela funciona sem configurar Supabase. As telas disponíveis são a calculadora e as consultas de produtos, descontos, condições e frete.
 
 ## Verificação
 
@@ -59,12 +40,7 @@ O sistema é publicado como site estático em **Cloudflare Workers**, com deploy
    - **Build command:** `npm run build`
    - **Deploy command:** `npx wrangler deploy`
    - **Root directory:** `/`
-4. Em **Settings → Build → Variables and secrets**, cadastre as variáveis usadas na compilação:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-
-   Use os mesmos valores do `.env.local`. A chave anônima é pública por natureza; a proteção dos dados é feita pelas políticas RLS do banco. Nunca cadastre a `service_role`.
-5. Salve e rode o primeiro deploy. O endereço fica no formato `https://qualinutri.<sua-conta>.workers.dev`.
+4. Salve e rode o primeiro deploy. O endereço fica no formato `https://qualinutri-demo.<sua-conta>.workers.dev`.
 
 Depois disso, cada envio para a branch principal gera um novo deploy. Um domínio próprio pode ser ligado em **Settings → Domains & Routes**, sem mudanças no código.
 

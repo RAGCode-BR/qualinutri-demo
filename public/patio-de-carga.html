@@ -1,0 +1,1167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pátio de Carga · Qualinutri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Pátio de Carga — tema Qualinutri (vidro verde). Palco 3D em tela cheia; carga à esquerda, telemetria à direita, ações embaixo. */
+:root{
+  --asphalt:#081a10; --panel:#0f2618; --panel-2:#163322; --line:#2a4d37;
+  --fg:#eef6ea; --muted:#9db3a3; --signal:#b6e52b; --signal-ink:#142200;
+  --ok:#4cc97a; --warn:#f2b54a; --bad:#ff6b5b;
+  --f-display:'Manrope',system-ui,sans-serif;
+  --f-body:'Manrope',system-ui,-apple-system,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--asphalt);color:var(--fg);font-family:var(--f-body);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.glass{background:linear-gradient(160deg,rgba(26,74,44,.78),rgba(8,30,17,.86));-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.12);border-radius:20px;box-shadow:0 24px 50px -20px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.12)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h2{font-family:var(--f-display);font-weight:800;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0}
+
+#panel{position:fixed;z-index:5;top:12px;bottom:12px;left:12px;width:310px;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:thin}
+.brand{padding:18px 18px 14px;display:flex;flex-direction:column;gap:8px}
+.brand .mark{font-family:var(--f-display);font-weight:800;font-size:26px;line-height:1;letter-spacing:-.02em}
+.brand .mark em{font-style:normal;color:var(--signal)}
+.brand .stripe{height:4px;border-radius:999px;background:linear-gradient(90deg,var(--signal),#25914a 60%,transparent)}
+.brand p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+#preset{display:none;margin:0 14px 4px;padding:10px 12px;border-radius:14px;background:rgba(182,229,43,.12);border:1px solid rgba(182,229,43,.35);font-size:12.5px;line-height:1.4}
+#preset b{color:var(--signal)}
+#panel section{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px}
+
+.veh{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.veh b{font-family:var(--f-display);font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1}
+.veh small{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.35}
+.sil{width:116px;height:38px;color:var(--fg);display:block}
+.bodies{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;background:var(--panel-2);border-radius:999px;padding:3px}
+.bodies button{background:transparent;border:0;border-radius:999px;padding:7px 2px;font-size:12px;font-weight:700;color:var(--muted)}
+.bodies button:hover{color:var(--fg)}
+.bodies button[aria-pressed="true"]{background:var(--signal);color:var(--signal-ink)}
+#picker{position:fixed;inset:0;z-index:25;display:grid;place-items:center;background:rgba(4,16,9,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:16px}
+#picker .card{width:min(900px,100%);max-height:calc(100% - 8px);overflow:auto;padding:22px;display:flex;flex-direction:column;gap:16px}
+.pk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.pk-head b{display:block;font-family:var(--f-display);font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.models{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px}
+.model{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,background .15s,transform .2s}
+.model:hover{border-color:#4a7a5a;transform:translateY(-2px)}
+.model[aria-pressed="true"]{border-color:var(--signal);background:rgba(182,229,43,.1)}
+.model .sil{width:100%;height:46px;margin-bottom:4px}
+.model b{font-family:var(--f-display);font-size:17px;font-weight:800;line-height:1.1}
+.model small{color:var(--muted);font-size:12px}
+.model .specs{display:flex;justify-content:space-between;gap:8px;font-family:var(--f-mono);font-size:11.5px;color:var(--fg);opacity:.9;margin-top:2px}
+.pk-body{display:flex;flex-direction:column;gap:8px}
+.pk-body .bodies{max-width:520px}
+.pk-body .bodies button{font-size:13px;padding:9px 4px}
+.pk-note{margin:0;color:var(--muted);font-size:12.5px;line-height:1.4}
+.pk-custom{grid-template-columns:repeat(5,minmax(0,1fr));padding:0}
+.pk-custom .btn{display:none}
+.field select{width:100%;background:var(--asphalt);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-family:var(--f-mono);font-size:13px;color:var(--fg)}
+.pk-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.08);padding-top:14px}
+.pk-sum{color:var(--muted);font-size:12px;min-width:0}
+#vehBtn b{font-family:var(--f-display);font-size:14px;font-weight:800;color:var(--signal)}
+@media (max-width:620px){.pk-custom{grid-template-columns:1fr 1fr}.models{grid-template-columns:1fr 1fr}.model .sil{height:36px}.model .specs{flex-direction:column;gap:1px}}
+
+.lib{display:flex;flex-direction:column;gap:6px}
+.lib-row{display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:10px;padding:8px 9px;border-radius:12px;background:var(--panel-2);border:1px solid transparent;transition:border-color .15s}
+.lib-row:hover{border-color:var(--line)}
+.sw{width:14px;height:14px;border-radius:4px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.lib-row .t{min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.lib-row .t b{font-weight:700;font-size:13px}
+.lib-row .t small{color:var(--muted);font-size:11.5px}
+.add{display:flex;gap:4px}
+.btn-s{background:transparent;border:1px solid var(--line);border-radius:999px;padding:4px 9px;font-size:12px;font-family:var(--f-mono)}
+.btn-s:hover{border-color:var(--signal);color:var(--signal)}
+
+details{background:var(--panel-2);border-radius:12px;border:1px solid var(--line)}
+summary{cursor:pointer;padding:9px 11px;font-weight:700;font-size:13px;list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";color:var(--muted)}
+details[open] summary::after{content:"−"}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 10px 10px}
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field label{font-size:11px;color:var(--muted);letter-spacing:.03em}
+.field input[type=text],.field input[type=number]{width:100%;background:var(--asphalt);border:1px solid var(--line);border-radius:10px;padding:6px 9px;font-family:var(--f-mono);font-size:13px}
+.field input:focus{border-color:var(--signal);outline:none}
+.check{display:flex;align-items:center;gap:7px;font-size:13px;grid-column:span 2}
+.check input{accent-color:var(--signal);width:15px;height:15px}
+.btn{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;transition:border-color .15s,transform .15s}
+.btn:hover{border-color:#4a7a5a}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--signal);color:var(--signal-ink);border-color:var(--signal)}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.form .btn{grid-column:span 2}
+
+#sel .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+#sel .head b{font-family:var(--f-display);font-size:17px;font-weight:800}
+#sel .pos{color:var(--muted);font-size:12.5px}
+#sel .form{padding:0}
+.row-btns{display:flex;gap:6px;flex-wrap:wrap}
+.row-btns .btn{flex:1}
+
+#missions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+#missions li{display:grid;grid-template-columns:18px 1fr;gap:9px;align-items:start;font-size:13px;line-height:1.35;color:var(--muted)}
+#missions li i{width:16px;height:16px;border:1.5px solid #4f6e5a;border-radius:5px;margin-top:1px;display:grid;place-items:center;font-style:normal;font-size:11px}
+#missions li.done{color:var(--fg)}
+#missions li.done i{background:var(--ok);border-color:var(--ok);color:#06140d}
+#missions li.done i::after{content:"✓";font-weight:800}
+
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;font-size:12.5px;color:var(--muted);margin:0}
+.keys dt{font-family:var(--f-mono);font-size:11.5px;color:var(--fg);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;justify-self:start}
+.keys dd{margin:0}
+
+#hud{position:fixed;z-index:5;top:12px;right:12px;width:284px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.meter .lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.meter .lbl span{font-family:var(--f-display);font-weight:800;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.meter .lbl b{font-family:var(--f-mono);font-size:15px}
+.meter small{display:block;color:var(--muted);font-size:11.5px;margin-top:5px}
+.bar{height:10px;background:var(--panel-2);border-radius:999px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;width:0;background:var(--ok);border-radius:999px;transition:width .3s ease,background-color .25s}
+.bar.over i{background:repeating-linear-gradient(-45deg,var(--bad) 0 6px,#a8302d 6px 12px)}
+.bar .ticks{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),rgba(0,0,0,.35) calc(25% - 1px) 25%);pointer-events:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--panel-2);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:1px}
+.stat span{font-size:11px;color:var(--muted)}
+.stat b{font-family:var(--f-mono);font-size:15px;font-weight:500}
+.axles{display:flex;flex-direction:column;gap:8px}
+.track{position:relative;height:34px;margin:2px 4px 0}
+.track .bed{position:absolute;top:13px;height:8px;background:#355a43;border-radius:999px}
+.track .zone{position:absolute;top:9px;height:16px;background:rgba(76,201,122,.2);border:1px dashed rgba(76,201,122,.6);border-radius:6px}
+.track .sup{position:absolute;top:22px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--muted);transform:translateX(-6px)}
+.track .dot{position:absolute;top:6px;width:4px;height:22px;background:var(--signal);border-radius:2px;transform:translateX(-2px);transition:left .25s,background-color .2s;box-shadow:0 0 0 3px rgba(182,229,43,.25)}
+.track .dot.bad{background:var(--bad);box-shadow:0 0 0 3px rgba(255,107,91,.3)}
+.track .cap{position:absolute;top:-2px;font-size:10px;color:var(--muted);font-family:var(--f-mono);transform:translateX(-50%);white-space:nowrap}
+.axle-row{display:grid;grid-template-columns:96px 1fr 62px;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.axle-row b{font-family:var(--f-mono);font-weight:500;color:var(--fg);text-align:right;font-size:12px}
+.axle-row .bar{height:7px}
+#issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+#issues li{display:grid;grid-template-columns:8px 1fr;gap:9px;font-size:12.5px;line-height:1.35}
+#issues li::before{content:"";width:8px;height:8px;border-radius:50%;margin-top:5px;background:var(--muted)}
+#issues li.bad::before{background:var(--bad)}
+#issues li.warn::before{background:var(--warn)}
+#issues li.ok::before{background:var(--ok)}
+#issues li small{display:block;color:var(--muted);font-size:11.5px}
+.hud-toggle{display:none}
+
+#toolbar{position:fixed;z-index:6;bottom:12px;left:334px;right:308px;display:flex;justify-content:center;pointer-events:none}
+.tb{pointer-events:auto;display:flex;align-items:center;gap:8px;padding:8px;flex-wrap:wrap;justify-content:center;border-radius:999px}
+.seg{display:flex;background:var(--panel-2);border-radius:999px;padding:3px}
+.seg button{background:transparent;border:0;padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--signal);color:var(--signal-ink)}
+.tb .btn[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+.go{background:linear-gradient(135deg,#d4f55b,var(--signal));color:var(--signal-ink);border:0;border-radius:999px;padding:10px 20px;font-family:var(--f-display);font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 10px 24px -10px rgba(182,229,43,.7)}
+.go:disabled{background:#3d4a33;color:#8a9677;cursor:not-allowed;box-shadow:none}
+#panelToggle{display:none}
+
+.tag{position:fixed;z-index:4;pointer-events:none;transform:translate(-50%,calc(-100% - 10px));background:var(--asphalt);border:1px solid var(--signal);color:var(--fg);padding:4px 9px;border-radius:999px;font-size:12px;white-space:nowrap;font-family:var(--f-mono)}
+.tag::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--signal);border-bottom:0}
+
+#toast{position:fixed;z-index:20;left:50%;top:14px;transform:translate(-50%,-160%);transition:transform .35s cubic-bezier(.2,.8,.2,1);display:flex;gap:12px;align-items:center;padding:10px 16px;max-width:min(460px,calc(100vw - 32px));font-size:13.5px;border-radius:999px}
+#toast.show{transform:translate(-50%,0)}
+#toast button{background:transparent;border:0;color:var(--signal);font-weight:700;padding:0}
+
+#result{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(4,16,9,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:16px}
+#result .card{width:min(400px,100%);padding:24px;display:flex;flex-direction:column;gap:14px}
+#result .score{font-family:var(--f-display);font-weight:800;font-size:68px;line-height:.9;color:var(--signal);letter-spacing:-.03em}
+#result .score small{font-size:18px;color:var(--muted);letter-spacing:0}
+#result .grade{font-family:var(--f-display);font-size:22px;font-weight:800}
+#result dl{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin:0;font-size:13px}
+#result dt{color:var(--muted)}
+#result dd{margin:0;font-family:var(--f-mono);text-align:right}
+#result .row-btns .btn{flex:1}
+
+@media (max-width:860px){
+  #hud{left:10px;right:10px;top:10px;width:auto;padding:10px 12px;gap:10px}
+  #hud .axles,#hud #issues{display:none}
+  #hud.expanded .axles,#hud.expanded #issues{display:flex}
+  .hud-toggle{display:block;background:transparent;border:0;color:var(--muted);font-size:12px;padding:0;text-align:left}
+  .stat{padding:5px 8px}
+  .stat b{font-size:13.5px}
+  #panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:58%;border-radius:20px 20px 0 0;border-bottom:0;transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:10}
+  #panel.open{transform:none}
+  #toolbar{left:10px;right:10px;bottom:10px}
+  .tb{gap:6px;padding:6px;border-radius:22px}
+  #panelToggle{display:inline-block}
+  .seg button{padding:6px 8px}
+  .hide-sm{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" tabindex="0" aria-label="Cena 3D do caminhão e da doca"></canvas></div>
+
+<aside id="panel" class="glass" aria-label="Painel de carga">
+  <header class="brand">
+    <div class="mark">Pátio de <em>Carga</em></div>
+    <div class="stripe" aria-hidden="true"></div>
+    <p>Escolha o veículo, coloque a carga, equilibre os eixos e despache.</p>
+  </header>
+  <div id="preset" role="status"></div>
+  <section>
+    <h2>Veículo</h2>
+    <div class="veh" id="veh"></div>
+    <div class="bodies" id="bodies" role="group" aria-label="Tipo de carroceria"></div>
+    <button class="btn primary" id="vehOpen" type="button">Escolher modelo de caminhão</button>
+  </section>
+  <section>
+    <h2>Adicionar carga</h2>
+    <div class="lib" id="lib"></div>
+    <details id="custom">
+      <summary>Carga personalizada</summary>
+      <form class="form" id="customForm">
+        <div class="field"><label for="cW">Comprimento (m)</label><input id="cW" type="text" inputmode="decimal" value="1,20"></div>
+        <div class="field"><label for="cD">Largura (m)</label><input id="cD" type="text" inputmode="decimal" value="1,00"></div>
+        <div class="field"><label for="cH">Altura (m)</label><input id="cH" type="text" inputmode="decimal" value="1,30"></div>
+        <div class="field"><label for="cKg">Peso (kg)</label><input id="cKg" type="text" inputmode="decimal" value="600"></div>
+        <div class="field"><label for="cQ">Quantidade</label><input id="cQ" type="number" min="1" max="60" value="2"></div>
+        <div class="field"><label for="cName">Nome</label><input id="cName" type="text" value="Volume"></div>
+        <label class="check"><input id="cStack" type="checkbox" checked> Aceita empilhamento</label>
+        <label class="check"><input id="cPallet" type="checkbox" checked> Sobre palete</label>
+        <button class="btn primary" type="submit">Adicionar ao caminhão</button>
+      </form>
+    </details>
+  </section>
+  <section id="sel" hidden>
+    <div class="head"><b id="selName">Item</b><span class="pos" id="selPos"></span></div>
+    <div class="form">
+      <div class="field"><label for="selW">Comprimento (m)</label><input id="selW" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="selD">Largura (m)</label><input id="selD" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="selH">Altura (m)</label><input id="selH" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="selKg">Peso (kg)</label><input id="selKg" type="text" inputmode="decimal"></div>
+      <label class="check"><input id="selStack" type="checkbox"> Aceita empilhamento</label>
+    </div>
+    <div class="row-btns">
+      <button class="btn" id="selRot">Girar 90°</button>
+      <button class="btn" id="selDup">Duplicar</button>
+      <button class="btn danger" id="selDel">Remover</button>
+    </div>
+  </section>
+  <section>
+    <h2>Metas da carga</h2>
+    <ul id="missions"></ul>
+  </section>
+  <section>
+    <h2>Controles</h2>
+    <dl class="keys">
+      <dt>Arrastar</dt><dd>Move o volume (leva junto o que estiver em cima)</dd>
+      <dt>Doca</dt><dd>Solte fora do caminhão para devolver à doca</dd>
+      <dt>R</dt><dd>Gira o item selecionado</dd>
+      <dt>D</dt><dd>Duplica</dd>
+      <dt>Del</dt><dd>Remove</dd>
+      <dt>Setas</dt><dd>Ajuste fino de 5 cm</dd>
+      <dt>Fundo</dt><dd>Arraste para girar a câmera, roda para zoom</dd>
+    </dl>
+  </section>
+</aside>
+
+<div id="hud" class="glass" aria-live="polite">
+  <div class="meter">
+    <div class="lbl"><span>Peso</span><b id="kgTxt">0 kg</b></div>
+    <div class="bar" id="kgBarWrap"><i id="kgBar"></i><span class="ticks"></span></div>
+    <small id="kgSub"></small>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>Volume</span><b id="volTxt">0%</b></div>
+    <div class="stat"><span>Assoalho</span><b id="floorTxt">0%</b></div>
+    <div class="stat"><span>Na doca</span><b id="dockTxt">0</b></div>
+  </div>
+  <button class="hud-toggle" id="hudToggle">Ver eixos e alertas ▾</button>
+  <div class="axles">
+    <div class="meter"><div class="lbl"><span>Centro de gravidade</span></div></div>
+    <div class="track" id="track">
+      <div class="bed" id="tBed"></div>
+      <div class="zone" id="tZone"></div>
+      <div class="sup" id="tSupF"></div>
+      <div class="sup" id="tSupR"></div>
+      <span class="cap" id="tCapF"></span>
+      <span class="cap" id="tCapR"></span>
+      <div class="dot" id="tDot"></div>
+    </div>
+    <div class="axle-row"><span id="axFLabel">Eixo dianteiro</span><div class="bar"><i id="axFBar"></i></div><b id="axFTxt">0</b></div>
+    <div class="axle-row"><span id="axRLabel">Eixos traseiros</span><div class="bar"><i id="axRBar"></i></div><b id="axRTxt">0</b></div>
+  </div>
+  <ul id="issues"></ul>
+</div>
+
+<nav id="toolbar">
+  <div class="tb glass">
+    <button class="btn" id="panelToggle">Cargas</button>
+    <button class="btn" id="vehBtn" type="button"><span class="hide-sm">Veículo: </span><b id="vehBtnName">Truck</b> ▾</button>
+    <div class="seg" role="group" aria-label="Câmera">
+      <button data-view="3d" aria-pressed="true">3D</button>
+      <button data-view="top" aria-pressed="false">Topo</button>
+      <button data-view="side" aria-pressed="false">Lateral</button>
+      <button data-view="rear" aria-pressed="false">Traseira</button>
+    </div>
+    <button class="btn hide-sm" id="heatBtn" aria-pressed="false">Cor por peso</button>
+    <button class="btn" id="autoBtn">Auto-organizar</button>
+    <button class="btn hide-sm" id="clearBtn">Esvaziar</button>
+    <button class="go" id="goBtn">Despachar</button>
+  </div>
+</nav>
+
+<div class="tag" id="tag" hidden></div>
+<div id="toast" class="glass" role="status"><span></span><button hidden></button></div>
+
+<div id="picker" hidden>
+  <div class="card glass" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
+    <div class="pk-head">
+      <div><h2>Frota</h2><b id="pkTitle">Escolha o caminhão</b></div>
+      <button class="btn" id="pkClose" type="button">Fechar</button>
+    </div>
+    <div class="models" id="pkModels"></div>
+    <form class="form pk-custom" id="pkCustom" hidden>
+      <div class="field"><label for="pkL">Comprimento (m)</label><input id="pkL" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="pkW">Largura (m)</label><input id="pkW" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="pkH">Altura (m)</label><input id="pkH" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="pkCap">Capacidade (kg)</label><input id="pkCap" type="text" inputmode="decimal"></div>
+      <div class="field"><label for="pkAx">Eixos</label><select id="pkAx"><option value="2">2 eixos</option><option value="3">3 eixos</option></select></div>
+      <button class="btn" type="submit">Aplicar</button>
+    </form>
+    <div class="pk-body">
+      <h2>Carroceria</h2>
+      <div class="bodies" id="pkBodies" role="group" aria-label="Tipo de carroceria"></div>
+      <p class="pk-note" id="pkBodyNote"></p>
+    </div>
+    <div class="pk-foot">
+      <span class="pk-sum num" id="pkSum"></span>
+      <button class="btn primary" id="pkApply" type="button">Usar este veículo</button>
+    </div>
+  </div>
+</div>
+
+<div id="result" hidden>
+  <div class="card glass" role="dialog" aria-modal="true" aria-labelledby="resGrade">
+    <h2>Viagem despachada</h2>
+    <div class="score num" id="resScore">0<small> / 1000</small></div>
+    <div class="grade" id="resGrade"></div>
+    <dl id="resList"></dl>
+    <div class="row-btns">
+      <button class="btn" id="resAgain">Voltar e ajustar</button>
+      <button class="btn primary" id="resNew">Novo carregamento</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const nf2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtKg=n=>Math.abs(n)>=1000?(n/1000).toLocaleString('pt-BR',{maximumFractionDigits:2})+' t':Math.round(n).toLocaleString('pt-BR')+' kg';
+const fmtM=n=>nf2.format(n);
+const pct=n=>Math.round(n*100)+'%';
+const num=v=>{const x=parseFloat(String(v).replace(/\s/g,'').replace(',','.'));return isFinite(x)?x:NaN;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const EPS=1e-4;
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Dados ---------- */
+const MODELS={
+  vuc:{nome:'VUC',desc:'Entregas urbanas · 2 eixos',L:4.3,W:2.1,H:2.2,cap:3000,cab:1.8,deck:1.05,wheels:[-1.1,3.0],supF:-1.1,supR:3.0,limF:1400,limR:2400,fl:'Eixo dianteiro',rl:'Eixo traseiro'},
+  toco:{nome:'Toco',desc:'Rígido · 2 eixos',L:6.5,W:2.45,H:2.6,cap:6000,cab:2.0,deck:1.2,wheels:[-1.2,4.7],supF:-1.2,supR:4.7,limF:2700,limR:4800,fl:'Eixo dianteiro',rl:'Eixo traseiro'},
+  gran10:{nome:'Graneleiro 10 t',desc:'Truck com lona · frota Qualinutri',L:7.5,W:2.45,H:2.3,cap:10000,cab:2.2,deck:1.25,wheels:[-1.3,4.9,6.25],supF:-1.3,supR:5.575,limF:4600,limR:8500,fl:'Eixo dianteiro',rl:'Eixos traseiros'},
+  gran15:{nome:'Graneleiro 15 t',desc:'Truck alongado com lona · frota Qualinutri',L:8.5,W:2.45,H:2.3,cap:15000,cab:2.2,deck:1.25,wheels:[-1.3,5.65,7.0],supF:-1.3,supR:6.325,limF:5200,limR:12500,fl:'Eixo dianteiro',rl:'Eixos traseiros'},
+  truck:{nome:'Truck',desc:'Rígido · 3 eixos',L:8.5,W:2.45,H:2.7,cap:14000,cab:2.2,deck:1.25,wheels:[-1.3,5.65,7.0],supF:-1.3,supR:6.325,limF:4600,limR:11500,fl:'Eixo dianteiro',rl:'Eixos traseiros'},
+  gran18:{nome:'Graneleiro 18 t',desc:'Bitruck com lona · frota Qualinutri',L:10.4,W:2.45,H:2.4,cap:18000,cab:2.3,deck:1.3,wheels:[-1.75,-0.5,7.9,9.25],supF:-1.125,supR:8.575,limF:8000,limR:13500,fl:'Eixos dianteiros',rl:'Eixos traseiros'},
+  carreta:{nome:'Carreta LS',desc:'Cavalo 6×2 + 3 eixos',L:14,W:2.45,H:2.7,cap:27000,cab:2.6,deck:1.3,wheels:[-2.1,0.55,1.85,10.8,12.05,13.3],supF:1.2,supR:12.05,limF:14500,limR:20000,fl:'Quinta roda',rl:'Eixos do reboque',trailer:true},
+  custom:{nome:'Personalizado',desc:'Defina suas medidas',L:7,W:2.45,H:2.6,cap:8000,axles:2,custom:true}
+};
+function customDerive(m){
+  const L=m.L;
+  if(m.axles===3){m.wheels=[-1.3,L*0.66,L*0.66+1.35];m.supR=L*0.66+0.675;m.rl='Eixos traseiros';}
+  else{m.wheels=[-1.2,L*0.72];m.supR=L*0.72;m.rl='Eixo traseiro';}
+  m.supF=m.wheels[0];m.cab=2.1;m.deck=1.25;m.limF=Math.round(m.cap*0.4);m.limR=Math.round(m.cap*0.85);m.fl='Eixo dianteiro';
+  return m;
+}
+function modelView(k){const m=Object.assign({},MODELS[k]);return m.custom?customDerive(m):m;}
+const BODIES={
+  aberta:{nome:'Graneleira',dW:0,dH:0,capK:1.02,note:'Carroceria aberta coberta com lona, como os caminhões da Qualinutri. A linha marca a altura máxima de carga.'},
+  bau:{nome:'Baú',dW:0,dH:0,capK:1,note:'Fechado com portas traseiras. Carregamento pela doca, pelo fundo.'},
+  sider:{nome:'Sider',dW:0,dH:0,capK:0.98,note:'Laterais de lona que abrem. Permite carregar pela lateral com empilhadeira.'},
+  refri:{nome:'Refrigerado',dW:0.14,dH:0.2,capK:0.94,note:'Paredes isoladas: perde cerca de 14 cm de largura, 20 cm de altura e 6% da capacidade.'}
+};
+let modelKey='gran18', bodyKey='aberta';
+function computeT(){
+  const m=modelView(modelKey), b=BODIES[bodyKey];
+  m.W=+(m.W-b.dW).toFixed(2); m.H=+(m.H-b.dH).toFixed(2);
+  m.cap=Math.round(m.cap*b.capK/10)*10; m.body=bodyKey; m.bodyNome=b.nome; m.key=modelKey;
+  return m;
+}
+/* Volumes típicos da Qualinutri: paletes de sacas e big bags. */
+const TYPES={
+  p40:{nome:'Palete sacas 40 kg',sub:'35 sacas (5 × 7 camadas) · PBR 1,20 × 1,00',w:1.2,d:1.0,h:1.19,kg:1425,pallet:true,stack:false,color:'#c9a96a'},
+  p30:{nome:'Palete sacas 30 kg',sub:'48 sacas (6 × 8 camadas) · PBR',w:1.2,d:1.0,h:1.26,kg:1465,pallet:true,stack:false,color:'#9fc36b'},
+  p25:{nome:'Palete sacas 25 kg',sub:'56 sacas (8 × 7 camadas) · PBR',w:1.2,d:1.0,h:0.98,kg:1425,pallet:true,stack:false,color:'#7fb2c9'},
+  s40:{nome:'Pilha solta 40 kg',sub:'40 sacas (4 × 10 camadas) · sem palete',w:1.4,d:0.9,h:1.5,kg:1600,pallet:false,stack:false,color:'#d8b27a'},
+  s30:{nome:'Pilha solta 30 kg',sub:'40 sacas (4 × 10 camadas) · sem palete',w:1.3,d:0.84,h:1.4,kg:1200,pallet:false,stack:false,color:'#b9d37f'},
+  s25:{nome:'Pilha solta 25 kg',sub:'40 sacas (4 × 10 camadas) · sem palete',w:1.2,d:0.8,h:1.2,kg:1000,pallet:false,stack:false,color:'#9cc4d6'},
+  bag:{nome:'Big bag mineral',sub:'0,95 × 0,95 · 1 t',w:0.95,d:0.95,h:1.3,kg:1000,pallet:true,stack:false,color:'#e3dccb'}
+};
+
+let T=computeT();
+let items=[], nextId=1, selected=null, heat=false, depart=null, view='3d';
+
+/* ---------- Three ---------- */
+const canvas=$('#c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#0c2416');
+scene.fog=new THREE.Fog('#0c2416',45,120);
+const camera=new THREE.PerspectiveCamera(40,1,0.1,400);
+camera.position.set(10,9,14);
+
+scene.add(new THREE.HemisphereLight('#e2f2dc','#1e2e22',0.8));
+const sun=new THREE.DirectionalLight('#fff6dc',0.95);
+sun.position.set(-12,20,10); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0006;
+scene.add(sun);
+const fill=new THREE.DirectionalLight('#a9d6b4',0.25); fill.position.set(14,8,-10); scene.add(fill);
+
+(function(){
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  g.fillStyle='#26332b'; g.fillRect(0,0,256,256);
+  for(let i=0;i<5000;i++){const v=34+Math.random()*22|0;g.fillStyle=`rgba(${v},${v+8},${v+3},.55)`;g.fillRect(Math.random()*256,Math.random()*256,1.5,1.5);}
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(60,60); tex.encoding=THREE.sRGBEncoding;
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(300,300),new THREE.MeshStandardMaterial({map:tex,roughness:.95}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+})();
+
+const M={
+  wood:new THREE.MeshStandardMaterial({color:'#9b7550',roughness:.9}),
+  woodDark:new THREE.MeshStandardMaterial({color:'#6e5236',roughness:.9}),
+  floor:new THREE.MeshStandardMaterial({color:'#4d3b2b',roughness:.85}),
+  steel:new THREE.MeshStandardMaterial({color:'#c9d0d8',roughness:.45,metalness:.35}),
+  frame:new THREE.MeshStandardMaterial({color:'#5f6f66',roughness:.5,metalness:.4}),
+  cab:new THREE.MeshStandardMaterial({color:'#1f8a45',roughness:.4,metalness:.2}),
+  dark:new THREE.MeshStandardMaterial({color:'#161d19',roughness:.8}),
+  tire:new THREE.MeshStandardMaterial({color:'#121513',roughness:.95}),
+  rim:new THREE.MeshStandardMaterial({color:'#9aa2ad',roughness:.35,metalness:.6}),
+  glass:new THREE.MeshStandardMaterial({color:'#1a2c27',roughness:.08,metalness:.3}),
+  lamp:new THREE.MeshStandardMaterial({color:'#fff4cc',emissive:'#ffe8a0',emissiveIntensity:.9}),
+  tail:new THREE.MeshStandardMaterial({color:'#7a1a16',emissive:'#ff3a2a',emissiveIntensity:.6}),
+  wall:new THREE.MeshStandardMaterial({color:'#bfd8c4',transparent:true,opacity:.09,depthWrite:false,side:THREE.DoubleSide}),
+  wallRefri:new THREE.MeshStandardMaterial({color:'#f2f5f8',transparent:true,opacity:.2,depthWrite:false,side:THREE.DoubleSide}),
+  tarp:new THREE.MeshStandardMaterial({color:'#2f6a45',transparent:true,opacity:.26,depthWrite:false,side:THREE.DoubleSide}),
+  tarpSolid:new THREE.MeshStandardMaterial({color:'#2c6142',roughness:.9}),
+  board:new THREE.MeshStandardMaterial({color:'#8a6a45',roughness:.85}),
+  door:new THREE.MeshStandardMaterial({color:'#dfe8e1',roughness:.5,metalness:.2}),
+  concrete:new THREE.MeshStandardMaterial({color:'#5a625d',roughness:.95}),
+  plate:new THREE.MeshStandardMaterial({color:'#7d858f',roughness:.4,metalness:.6}),
+  yellow:new THREE.MeshStandardMaterial({color:'#b6e52b',roughness:.6}),
+  rubber:new THREE.MeshStandardMaterial({color:'#111',roughness:.9}),
+  edge:new THREE.LineBasicMaterial({color:'#000000',transparent:true,opacity:.28}),
+  topLine:new THREE.LineBasicMaterial({color:'#b6e52b',transparent:true,opacity:.6})
+};
+const SHARED=new Set(Object.values(M));
+
+function box(parent,w,h,d,x,y,z,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function disposeTree(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&!SHARED.has(n.material)){if(n.material.map)n.material.map.dispose();n.material.dispose();}});}
+
+const rig=new THREE.Group(); scene.add(rig);
+let truckGroup=null, dockGroup=null, wheels=[];
+
+function buildTruck(){
+  if(truckGroup){rig.remove(truckGroup);disposeTree(truckGroup);}
+  wheels=[];
+  const g=new THREE.Group(); truckGroup=g; rig.add(g);
+  const {L,W,H,deck,cab}=T, ox=-L/2;
+  box(g,L,0.1,W,ox+L/2,deck-0.05,0,M.floor);
+  box(g,L,0.24,W-0.12,ox+L/2,deck-0.22,0,M.dark);
+  const cx0=ox-0.2-cab, railLen=(ox+L)-(cx0+0.3);
+  box(g,railLen,0.26,0.14,cx0+0.3+railLen/2,0.82,0.45,M.dark);
+  box(g,railLen,0.26,0.14,cx0+0.3+railLen/2,0.82,-0.45,M.dark);
+  const n=Math.max(3,Math.round(L/1.4)), B=T.body;
+  if(B==='aberta'){
+    const bh=0.6;
+    for(const s of [-1,1])box(g,L,bh,0.05,ox+L/2,deck+bh/2,s*(W/2+0.025),M.board);
+    box(g,0.06,bh*1.7,W+0.1,ox+0.03,deck+bh*0.85,0,M.board);
+    box(g,0.05,bh,W,ox+L+0.06,deck-bh/2+0.02,0,M.board);
+    for(let i=0;i<=n;i++){const x=ox+L*i/n;for(const s of [-1,1])box(g,0.07,bh+0.1,0.07,x,deck+(bh+0.1)/2,s*(W/2+0.06),M.frame);}
+  }else{
+    const refri=B==='refri', sider=B==='sider', th=refri?0.1:0.04, off=refri?0.05:0;
+    const wm=refri?M.wallRefri:sider?M.tarp:M.wall;
+    box(g,th,H,W+2*off,ox-off+th/2-0.02,deck+H/2,0,refri?M.wallRefri:M.wall).castShadow=false;
+    box(g,L,H,th,ox+L/2,deck+H/2,-(W/2+off),wm).castShadow=false;
+    if(sider){box(g,0.38,H,0.09,ox+0.25,deck+H/2,W/2+0.05,M.tarpSolid);}
+    else box(g,L,H,th,ox+L/2,deck+H/2,W/2+off,wm).castShadow=false;
+    for(let i=0;i<=n;i++){const x=ox+L*i/n;for(const s of [-1,1])box(g,0.07,H,0.07,x,deck+H/2,s*(W/2+off),M.frame);}
+    for(const s of [-1,1])box(g,L,0.07,0.07,ox+L/2,deck+H,s*(W/2+off),M.frame);
+    box(g,0.07,0.07,W,ox,deck+H,0,M.frame);
+    box(g,0.07,0.07,W,ox+L,deck+H,0,M.frame);
+    if(refri){box(g,0.26,0.85,1.5,ox-0.16,deck+H-0.55,0,M.steel);box(g,0.27,0.5,1.2,ox-0.165,deck+H-0.55,0,M.dark);}
+    for(const s of [-1,1])box(g,W/2,H,0.04,ox+L-W/4,deck+H/2,s*(W/2+off+0.07),refri?M.wallRefri:M.door);
+  }
+  const top=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L,0.001,W)),M.topLine);
+  top.position.set(ox+L/2,deck+H,0); g.add(top);
+  box(g,0.12,0.16,W,ox+L+0.06,deck-0.42,0,M.dark);
+  for(const s of [-1,1])box(g,0.05,0.12,0.28,ox+L+0.1,deck-0.42,s*(W/2-0.25),M.tail);
+  const cabH=deck+H*0.72-0.55, cy0=0.55;
+  box(g,cab,cabH,W,cx0+cab/2,cy0+cabH/2,0,M.cab);
+  box(g,cab*0.55,0.32,W*0.9,cx0+cab*0.62,cy0+cabH+0.16,0,M.cab);
+  box(g,0.04,cabH*0.36,W*0.86,cx0-0.01,cy0+cabH*0.72,0,M.glass);
+  for(const s of [-1,1])box(g,cab*0.42,cabH*0.3,0.03,cx0+cab*0.28,cy0+cabH*0.72,s*(W/2+0.005),M.glass);
+  box(g,0.04,cabH*0.28,W*0.56,cx0-0.01,cy0+cabH*0.28,0,M.dark);
+  for(const s of [-1,1])box(g,0.05,0.14,0.32,cx0-0.02,cy0+0.3,s*(W/2-0.32),M.lamp);
+  box(g,0.22,0.26,W+0.06,cx0-0.06,cy0,0,M.dark);
+  for(const s of [-1,1])box(g,0.08,0.3,0.06,cx0+0.15,cy0+cabH*0.62,s*(W/2+0.12),M.dark);
+  if(T.trailer){for(const s of [-1,1])box(g,0.12,deck-0.25,0.12,ox+2.8,(deck-0.25)/2+0.02,s*0.8,M.frame);}
+  for(const wx of T.wheels){
+    const dual=wx>0, tw=dual?0.52:0.32;
+    for(const s of [-1,1]){
+      const wg=new THREE.Group(); wg.position.set(ox+wx,0.5,s*(W/2-tw/2+0.04)); g.add(wg);
+      const tire=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,tw,28),M.tire); tire.rotation.x=Math.PI/2; tire.castShadow=true; wg.add(tire);
+      const rim=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,tw+0.02,18),M.rim); rim.rotation.x=Math.PI/2; wg.add(rim);
+      const hub=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.5,tw+0.04),M.dark); wg.add(hub);
+      wheels.push(wg);
+    }
+    box(g,0.12,0.12,W-0.3,ox+wx,0.5,0,M.dark);
+  }
+}
+
+const DOCK={gap:0.55,depth:7.5,half:6.5};
+function buildDock(){
+  if(dockGroup){scene.remove(dockGroup);disposeTree(dockGroup);}
+  const g=new THREE.Group(); dockGroup=g; scene.add(g);
+  const {L,W,deck}=T, x0=L/2+DOCK.gap;
+  box(g,DOCK.depth,deck,DOCK.half*2,x0+DOCK.depth/2,deck/2,0,M.concrete);
+  box(g,0.08,0.03,DOCK.half*2,x0+0.04,deck+0.015,0,M.yellow);
+  for(const s of [-1,1])box(g,0.14,0.35,0.5,x0-0.07,deck-0.35,s*(W/2-0.25),M.rubber);
+  box(g,DOCK.gap+0.05,0.04,W*0.86,L/2+DOCK.gap/2,deck-0.02,0,M.plate);
+  const c=document.createElement('canvas'); c.width=512; c.height=128; const x=c.getContext('2d');
+  x.font='800 80px Manrope, "Arial Narrow", sans-serif'; x.fillStyle='rgba(182,229,43,.85)'; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText('QUALINUTRI',256,68);
+  const tex=new THREE.CanvasTexture(c); tex.encoding=THREE.sRGBEncoding;
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(4,1),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false}));
+  p.rotation.x=-Math.PI/2; p.rotation.z=Math.PI/2; p.position.set(x0+DOCK.depth-0.8,deck+0.006,0); g.add(p);
+  const bayLen=L+T.cab+5;
+  for(const s of [-1,1]){const m=new THREE.Mesh(new THREE.PlaneGeometry(bayLen,0.14),M.yellow);m.rotation.x=-Math.PI/2;m.position.set(L/2-bayLen/2,0.006,s*(W/2+1.15));m.receiveShadow=true;g.add(m);}
+  const span=L/2+DOCK.depth+10;
+  sun.shadow.camera.left=-span; sun.shadow.camera.right=span; sun.shadow.camera.top=span; sun.shadow.camera.bottom=-span;
+  sun.shadow.camera.near=1; sun.shadow.camera.far=80; sun.shadow.camera.updateProjectionMatrix();
+}
+
+/* ---------- Itens ---------- */
+function makeItem(key,over){
+  const t=TYPES[key]||{};
+  return Object.assign({id:nextId++,type:key,nome:t.nome,w:t.w,d:t.d,h:t.h,kg:t.kg,stack:t.stack,pallet:t.pallet,color:t.color,loaded:false,x:0,z:0,y:0,gx:0,gz:0,dockLift:0},over||{});
+}
+function buildItemMesh(it){
+  const g=new THREE.Group(); g.userData.itemId=it.id;
+  const w=it.w, d=it.d; let base=0;
+  if(it.pallet){
+    base=0.144;
+    for(const f of [-0.5,0,0.5]){box(g,w,0.022,0.1,0,0.011,f*(d-0.1),M.woodDark);box(g,w,0.1,0.1,0,0.072,f*(d-0.1),M.wood);}
+    const n=Math.max(3,Math.round(w/0.24));
+    for(let i=0;i<n;i++){box(g,0.1,0.022,d,-w/2+0.05+i*(w-0.1)/(n-1),0.133,0,M.wood);}
+  }
+  const ch=Math.max(0.05,it.h-base);
+  const mat=new THREE.MeshStandardMaterial({color:it.color,roughness:.82});
+  const geo=new THREE.BoxGeometry(w*(it.pallet?0.97:0.995),ch,d*(it.pallet?0.97:0.995));
+  const cargo=new THREE.Mesh(geo,mat); cargo.position.y=base+ch/2; cargo.castShadow=true; cargo.receiveShadow=true; g.add(cargo);
+  const ed=new THREE.LineSegments(new THREE.EdgesGeometry(geo),M.edge); ed.position.copy(cargo.position); g.add(ed);
+  if(ch>0.3){
+    const layers=Math.max(2,Math.round(ch/0.18)), lm=new THREE.LineBasicMaterial({color:'#000',transparent:true,opacity:.18});
+    for(let i=1;i<layers;i++){const l=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w*0.975,0.001,d*0.975)),lm);l.position.set(0,base+ch*i/layers,0);g.add(l);}
+  }
+  it.mesh=g; it.cargoMat=mat;
+  return g;
+}
+function disposeItem(it){if(it.mesh){if(it.mesh.parent)it.mesh.parent.remove(it.mesh);disposeTree(it.mesh);it.mesh=null;it.cargoMat=null;}}
+function placeMesh(it){
+  if(!it.mesh)buildItemMesh(it);
+  const m=it.mesh, lift=(drag&&drag.set.has(it)&&drag.moved)?0.05:0;
+  if(it.loaded){if(m.parent!==rig)rig.add(m);m.position.set(it.x-T.L/2+it.w/2,T.deck+it.y+lift,it.z+it.d/2);}
+  else{if(m.parent!==scene)scene.add(m);m.position.set(it.gx+it.w/2,T.deck+(it.dockLift||0)+lift,it.gz+it.d/2);}
+}
+
+/* ---------- Física simples ---------- */
+function ovXZ(x,z,w,d,b){return x<b.x+b.w-EPS&&x+w>b.x+EPS&&z<b.z+b.d-EPS&&z+d>b.z+EPS;}
+function areaXZ(x,z,w,d,b){const ox=Math.max(0,Math.min(x+w,b.x+b.w)-Math.max(x,b.x)),oz=Math.max(0,Math.min(z+d,b.z+b.d)-Math.max(z,b.z));return ox*oz;}
+function restY(x,z,w,d,list){let y=0;for(const o of list)if(ovXZ(x,z,w,d,o))y=Math.max(y,o.y+o.h);return y;}
+function support(x,z,w,d,y,list){let a=0,all=true;for(const o of list){if(Math.abs(o.y+o.h-y)<0.01){const ar=areaXZ(x,z,w,d,o);if(ar>EPS){a+=ar;if(!o.stack)all=false;}}}return{frac:a/(w*d),allStack:all};}
+function settle(ex){
+  const L=items.filter(i=>i.loaded&&!(ex&&ex.has(i))).sort((a,b)=>(a.y-b.y)||(a.id-b.id));
+  const done=[];
+  for(const it of L){it.y=restY(it.x,it.z,it.w,it.d,done);done.push(it);}
+}
+function findSpot(it,placed){
+  const {L,W,H}=T, hw=W/2;
+  const cands=[{x:0,z:-hw}];
+  for(const p of placed){cands.push({x:p.x+p.w,z:p.z},{x:p.x,z:p.z+p.d},{x:p.x+p.w,z:-hw},{x:p.x,z:p.z});}
+  let best=null,bs=Infinity;
+  const ors=it.w===it.d?[[it.w,it.d]]:[[it.w,it.d],[it.d,it.w]];
+  for(const c of cands)for(const [w,d] of ors){
+    if(c.x<-EPS||c.z<-hw-EPS||c.x+w>L+EPS||c.z+d>hw+EPS)continue;
+    const y=restY(c.x,c.z,w,d,placed);
+    if(y+it.h>H+EPS)continue;
+    if(y>EPS){const s=support(c.x,c.z,w,d,y,placed);if(s.frac<0.75||!s.allStack)continue;}
+    const sc=Math.round(c.x*100)+y*10+(c.z+hw);
+    if(sc<bs){bs=sc;best={x:c.x,z:c.z,y,w,d};}
+  }
+  return best;
+}
+function applySpot(it,s){
+  const rot=Math.abs(s.w-it.w)>EPS;
+  it.x=s.x;it.z=s.z;it.y=s.y;
+  if(rot){it.w=s.w;it.d=s.d;if(it.mesh)disposeItem(it);}
+  it.loaded=true;it.dockLift=0;
+}
+function layoutLane(){
+  const x0=T.L/2+DOCK.gap+0.35, zmax=DOCK.half-0.3;
+  let x=x0,z=-zmax,row=0;
+  for(const it of items){
+    if(it.loaded)continue;
+    if(z+it.d>zmax&&z>-zmax+EPS){z=-zmax;x+=row+0.3;row=0;}
+    it.gx=x;it.gz=z;it.dockLift=0;z+=it.d+0.25;row=Math.max(row,it.w);
+  }
+}
+function balanceShift(list){
+  const kg=list.reduce((s,i)=>s+i.kg,0); if(!kg)return;
+  const xcg=list.reduce((s,i)=>s+i.kg*(i.x+i.w/2),0)/kg;
+  const maxEnd=Math.max(...list.map(i=>i.x+i.w));
+  const desired=T.supF+0.6*(T.supR-T.supF);
+  const shift=clamp(desired-xcg,0,T.L-maxEnd);
+  if(shift>0.01){const s=Math.floor(shift/0.05)*0.05;list.forEach(i=>i.x+=s);}
+}
+function autoArrange(subset,silent){
+  const list=subset||items;
+  items.forEach(i=>{i.loaded=false;});
+  const sorted=[...list].sort((a,b)=>(b.kg-a.kg)||(b.w*b.d-a.w*a.d)||(a.id-b.id));
+  const placed=[];let miss=0;
+  for(const it of sorted){const s=findSpot(it,placed);if(s){applySpot(it,s);placed.push(it);}else miss++;}
+  balanceShift(placed);
+  layoutLane();
+  items.forEach(placeMesh);
+  refresh();
+  if(!silent)toast(miss?`Organizado. ${miss} volume${miss>1?'s':''} não coube${miss>1?'ram':''} e ficou na doca.`:'Carga organizada: mais pesado embaixo e eixos balanceados.');
+}
+
+/* ---------- Análise ---------- */
+function analyze(){
+  const L=items.filter(i=>i.loaded);
+  const kg=L.reduce((s,i)=>s+i.kg,0);
+  const vol=L.reduce((s,i)=>s+i.w*i.d*i.h,0)/(T.L*T.W*T.H);
+  const floor=L.filter(i=>i.y<EPS).reduce((s,i)=>s+i.w*i.d,0)/(T.L*T.W);
+  const xcg=kg?L.reduce((s,i)=>s+i.kg*(i.x+i.w/2),0)/kg:null;
+  const share=kg?(xcg-T.supF)/(T.supR-T.supF):0;
+  const rear=kg*share, front=kg-rear;
+  const bad=new Set(),warn=new Set(),issues=[];
+  let tall=0,unst=0,crush=0;
+  for(const it of L){
+    if(it.y+it.h>T.H+EPS){bad.add(it);tall++;}
+    if(it.y>EPS){
+      const s=support(it.x,it.z,it.w,it.d,it.y,L.filter(o=>o!==it));
+      if(!s.allStack){bad.add(it);crush++;}
+      else if(s.frac<0.6){warn.add(it);unst++;}
+    }
+  }
+  if(kg>T.cap)issues.push({l:'bad',t:'Peso acima da capacidade',s:`${fmtKg(kg-T.cap)} além do limite de ${fmtKg(T.cap)}`});
+  if(kg&&front>T.limF)issues.push({l:'bad',t:`${T.fl} sobrecarregado`,s:`${fmtKg(front)} para um limite de ${fmtKg(T.limF)}. Puxe carga para trás.`});
+  if(kg&&rear>T.limR)issues.push({l:'bad',t:`${T.rl} sobrecarregado${T.rl.endsWith('s')?'s':''}`,s:`${fmtKg(rear)} para um limite de ${fmtKg(T.limR)}. Traga carga para a frente.`});
+  if(kg&&share>0.9&&rear<=T.limR)issues.push({l:'warn',t:'Dianteira leve',s:'Centro de gravidade muito atrás. O caminhão perde direção.'});
+  if(tall)issues.push({l:'bad',t:`${tall} volume${tall>1?'s passam':' passa'} da altura útil`,s:`Altura útil: ${fmtM(T.H)} m`});
+  if(crush)issues.push({l:'bad',t:`${crush} volume${crush>1?'s':''} sobre carga não empilhável`,s:'Vai amassar as sacas de baixo.'});
+  if(unst)issues.push({l:'warn',t:`${unst} volume${unst>1?'s':''} com pouco apoio`,s:'Menos de 60% da base apoiada.'});
+  const dock=items.length-L.length;
+  if(dock)issues.push({l:'info',t:`${dock} volume${dock>1?'s':''} aguardando na doca`,s:'Arraste para dentro do caminhão.'});
+  const axOk=kg>0&&front<=T.limF&&rear<=T.limR&&share>=0&&share<=0.9;
+  const cleanLoad=!tall&&!crush&&!unst;
+  const missions=[
+    {t:`Use de 85% a 100% da capacidade (${fmtKg(T.cap*0.85)} a ${fmtKg(T.cap)})`,ok:kg>=T.cap*0.85&&kg<=T.cap},
+    {t:'Ocupe ao menos 75% do assoalho',ok:floor>=0.75},
+    {t:'Mantenha os eixos dentro do limite',ok:axOk},
+    {t:'Embarque tudo, sem volume instável ou acima da altura',ok:cleanLoad&&dock===0&&kg>0}
+  ];
+  const canGo=kg>0&&!issues.some(i=>i.l==='bad');
+  return {kg,vol,floor,xcg,share,front,rear,bad,warn,issues,dock,missions,axOk,cleanLoad,canGo};
+}
+
+/* ---------- UI ---------- */
+const HEAT_A=new THREE.Color('#4f9fb8'),HEAT_B=new THREE.Color('#e2553f');
+let last=null;
+function refresh(){
+  const a=analyze(); last=a;
+  $('#kgTxt').textContent=fmtKg(a.kg);
+  const kr=a.kg/T.cap;
+  $('#kgBar').style.width=Math.min(100,kr*100)+'%';
+  $('#kgBar').style.backgroundColor=kr>1?'':kr>0.85?'var(--ok)':kr>0.5?'#c9c53a':'#6f8a79';
+  $('#kgBarWrap').classList.toggle('over',kr>1);
+  $('#kgSub').textContent=`${pct(kr)} de ${fmtKg(T.cap)} · ${T.nome} ${T.bodyNome.toLowerCase()} ${fmtM(T.L)} × ${fmtM(T.W)} × ${fmtM(T.H)} m`;
+  $('#volTxt').textContent=pct(a.vol);
+  $('#floorTxt').textContent=pct(Math.min(1,a.floor));
+  $('#dockTxt').textContent=a.dock;
+  const lo=Math.min(T.supF,0)-0.3, hi=Math.max(T.L,T.supR)+0.3, P=x=>((x-lo)/(hi-lo)*100)+'%';
+  const bed=$('#tBed'); bed.style.left=P(0); bed.style.width=(T.L/(hi-lo)*100)+'%';
+  const z0=T.supF+0.45*(T.supR-T.supF), z1=T.supF+0.75*(T.supR-T.supF);
+  const zone=$('#tZone'); zone.style.left=P(z0); zone.style.width=((z1-z0)/(hi-lo)*100)+'%';
+  $('#tSupF').style.left=P(T.supF); $('#tSupR').style.left=P(T.supR);
+  $('#tCapF').style.left=P(T.supF); $('#tCapF').textContent='diant.';
+  $('#tCapR').style.left=P(T.supR); $('#tCapR').textContent='tras.';
+  const dot=$('#tDot'); dot.hidden=!a.kg; if(a.kg){dot.style.left=P(a.xcg);dot.classList.toggle('bad',!a.axOk);}
+  $('#axFLabel').textContent=T.fl; $('#axRLabel').textContent=T.rl;
+  const fr=a.front/T.limF, rr=a.rear/T.limR;
+  $('#axFBar').style.width=clamp(fr,0,1)*100+'%'; $('#axFBar').style.backgroundColor=fr>1?'var(--bad)':fr>0.9?'var(--warn)':'var(--ok)';
+  $('#axRBar').style.width=clamp(rr,0,1)*100+'%'; $('#axRBar').style.backgroundColor=rr>1?'var(--bad)':rr>0.9?'var(--warn)':'var(--ok)';
+  $('#axFTxt').textContent=fmtKg(Math.max(0,a.front)); $('#axRTxt').textContent=fmtKg(Math.max(0,a.rear));
+  const ul=$('#issues'); ul.innerHTML='';
+  const list=a.issues.length?a.issues:[{l:a.kg?'ok':'info',t:a.kg?'Carga regular para viagem':'Caminhão vazio',s:a.kg?'Pode despachar ou tentar melhorar a pontuação.':'Adicione volumes pelo painel ou arraste da doca.'}];
+  for(const i of list){const li=document.createElement('li');li.className=i.l;li.innerHTML='<div></div>';li.firstChild.textContent=i.t;const sm=document.createElement('small');sm.textContent=i.s;li.firstChild.appendChild(sm);ul.appendChild(li);}
+  const mu=$('#missions'); mu.innerHTML='';
+  for(const m of a.missions){const li=document.createElement('li');if(m.ok)li.className='done';li.innerHTML='<i></i><span></span>';li.lastChild.textContent=m.t;mu.appendChild(li);}
+  $('#goBtn').disabled=!a.canGo||!!depart;
+  $('#goBtn').title=a.canGo?'Despachar o caminhão':'Resolva os alertas vermelhos para despachar';
+  const maxKg=Math.max(1,...items.map(i=>i.kg/(i.w*i.d)));
+  for(const it of items){
+    placeMesh(it);
+    const m=it.cargoMat; if(!m)continue;
+    if(heat)m.color.copy(HEAT_A).lerp(HEAT_B,Math.min(1,(it.kg/(it.w*it.d))/maxKg)); else m.color.set(it.color);
+    let e=null; if(a.bad.has(it))e='#ff2d20'; else if(a.warn.has(it))e='#ff8a00'; if(it===selected)e='#b6e52b';
+    if(e){m.emissive.set(e);m.emissiveIntensity=it===selected?0.42:0.38;}else m.emissive.set('#000000');
+  }
+  renderSel();
+}
+
+function silSVG(m){
+  const total=m.L+m.cab+0.5, s=116/total, bx=2+(m.cab+0.25)*s, f=v=>v.toFixed(1);
+  let h=`<svg class="sil" viewBox="0 0 120 38" preserveAspectRatio="xMidYMid meet" aria-hidden="true">`;
+  h+=`<rect x="${f(bx-(0.2+m.cab)*s)}" y="24.5" width="${f((m.L+m.cab+0.2)*s)}" height="2.5" style="fill:currentColor;opacity:.45"/>`;
+  h+=`<rect x="${f(bx)}" y="4" width="${f(m.L*s)}" height="20" rx="1.5" style="fill:currentColor;opacity:.26"/>`;
+  h+=`<rect x="${f(bx-(0.2+m.cab)*s)}" y="10" width="${f(m.cab*s)}" height="15" rx="2" style="fill:var(--signal)"/>`;
+  for(const wx of m.wheels){h+=`<circle cx="${f(bx+wx*s)}" cy="30.5" r="4.6" style="fill:currentColor"/><circle cx="${f(bx+wx*s)}" cy="30.5" r="1.8" style="fill:var(--panel-2)"/>`;}
+  return h+'</svg>';
+}
+function renderBodies(el,cur,fn){
+  el.innerHTML='';
+  for(const [k,b] of Object.entries(BODIES)){const x=document.createElement('button');x.type='button';x.textContent=b.nome;x.setAttribute('aria-pressed',k===cur);x.onclick=()=>fn(k);el.appendChild(x);}
+}
+function renderVehicle(){
+  const v=$('#veh');
+  v.innerHTML=`<b></b>${silSVG(T)}<small></small>`;
+  v.querySelector('b').textContent=T.nome;
+  v.querySelector('small').textContent=`${T.bodyNome} · ${fmtM(T.L)} × ${fmtM(T.W)} × ${fmtM(T.H)} m · ${fmtKg(T.cap)} · ${T.wheels.length} eixos`;
+  $('#vehBtnName').textContent=T.nome;
+  renderBodies($('#bodies'),bodyKey,b=>setVehicle(modelKey,b));
+}
+
+let pk=null;
+function readCustom(){
+  const L=num($('#pkL').value),W=num($('#pkW').value),H=num($('#pkH').value),cap=num($('#pkCap').value),ax=parseInt($('#pkAx').value,10);
+  if(![L,W,H,cap].every(v=>isFinite(v)&&v>0))return null;
+  return{L:clamp(L,2,20),W:clamp(W,1.2,2.6),H:clamp(H,1,3.2),cap:clamp(cap,500,60000),axles:ax===3?3:2};
+}
+function pkPreview(){
+  let m=modelView(pk.model);
+  if(pk.model==='custom'){const r=readCustom();if(r){Object.assign(m,r);customDerive(m);}}
+  const b=BODIES[pk.body];
+  return{m,W:m.W-b.dW,H:m.H-b.dH,cap:Math.round(m.cap*b.capK/10)*10};
+}
+function updatePkSum(){
+  const p=pkPreview();
+  $('#pkSum').textContent=`${p.m.nome} · ${BODIES[pk.body].nome} · espaço útil ${fmtM(p.m.L)} × ${fmtM(p.W)} × ${fmtM(p.H)} m · ${fmtKg(p.cap)}`;
+}
+function renderPicker(){
+  const el=$('#pkModels'); el.innerHTML='';
+  for(const k of Object.keys(MODELS)){
+    const m=modelView(k), b=document.createElement('button');
+    b.type='button'; b.className='model'; b.setAttribute('aria-pressed',k===pk.model);
+    b.innerHTML=`${silSVG(m)}<b></b><small></small><span class="specs"><span></span><span></span></span>`;
+    b.querySelector('b').textContent=m.nome;
+    b.querySelector('small').textContent=m.desc;
+    const sp=b.querySelectorAll('.specs span');
+    sp[0].textContent=`${fmtM(m.L)} × ${fmtM(m.W)} m`;
+    sp[1].textContent=`${fmtKg(m.cap)} · ${m.wheels.length} eixos`;
+    b.onclick=()=>{pk.model=k;renderPicker();if(k==='custom')$('#pkL').focus();};
+    b.ondblclick=()=>{pk.model=k;applyPicker();};
+    el.appendChild(b);
+  }
+  renderBodies($('#pkBodies'),pk.body,k=>{pk.body=k;renderPicker();});
+  $('#pkBodyNote').textContent=BODIES[pk.body].note;
+  $('#pkCustom').hidden=pk.model!=='custom';
+  updatePkSum();
+}
+function openPicker(){
+  if(depart)return;
+  pk={model:modelKey,body:bodyKey};
+  const c=MODELS.custom;
+  $('#pkL').value=fmtM(c.L);$('#pkW').value=fmtM(c.W);$('#pkH').value=fmtM(c.H);$('#pkCap').value=Math.round(c.cap);$('#pkAx').value=String(c.axles);
+  renderPicker();
+  $('#picker').hidden=false; $('#panel').classList.remove('open');
+  const cur=$('#pkModels [aria-pressed="true"]'); if(cur)cur.focus();
+}
+function closePicker(){$('#picker').hidden=true;pk=null;}
+function applyPicker(){
+  if(!pk)return;
+  if(pk.model==='custom'){const r=readCustom();if(!r){toast('Preencha as medidas do veículo personalizado com números maiores que zero.');return;}Object.assign(MODELS.custom,r);}
+  const {model,body}=pk; closePicker(); setVehicle(model,body,true);
+}
+['pkL','pkW','pkH','pkCap','pkAx'].forEach(id=>{$('#'+id).addEventListener('input',()=>{if(pk)updatePkSum();});});
+$('#pkCustom').addEventListener('submit',e=>{e.preventDefault();applyPicker();});
+$('#pkApply').onclick=applyPicker;
+$('#pkClose').onclick=closePicker;
+$('#picker').addEventListener('click',e=>{if(e.target.id==='picker')closePicker();});
+$('#vehBtn').onclick=openPicker;
+$('#vehOpen').onclick=openPicker;
+function renderLib(){
+  const el=$('#lib'); el.innerHTML='';
+  for(const [k,t] of Object.entries(TYPES)){
+    const r=document.createElement('div'); r.className='lib-row';
+    r.innerHTML=`<span class="sw"></span><span class="t"><b></b><small></small></span><span class="add"><button class="btn-s">+1</button><button class="btn-s">+5</button></span>`;
+    r.querySelector('.sw').style.background=t.color;
+    r.querySelector('b').textContent=t.nome;
+    r.querySelector('small').textContent=`${t.sub} · ${fmtKg(t.kg)}`;
+    const [b1,b5]=r.querySelectorAll('button');
+    b1.setAttribute('aria-label',`Adicionar 1 ${t.nome}`); b5.setAttribute('aria-label',`Adicionar 5 ${t.nome}`);
+    b1.onclick=()=>addItems(k,1); b5.onclick=()=>addItems(k,5);
+    el.appendChild(r);
+  }
+}
+function addItems(key,n,over){
+  if(depart)return;
+  let miss=0,lastIt=null;
+  for(let i=0;i<n;i++){
+    const it=makeItem(key,typeof over==='function'?over(i):over); items.push(it); lastIt=it;
+    const s=findSpot(it,items.filter(o=>o.loaded));
+    if(s)applySpot(it,s); else miss++;
+  }
+  layoutLane(); selected=lastIt; refresh();
+  const nome=lastIt.nome;
+  toast(miss===n?`Sem espaço: ${n>1?n+' volumes foram':'o volume foi'} para a doca.`:miss?`${n-miss} × ${nome} no caminhão, ${miss} na doca por falta de espaço.`:`${n} × ${nome} adicionado${n>1?'s':''}.`);
+}
+function setVehicle(mk,bk,force){
+  if(depart)return;
+  if(!force&&mk===modelKey&&bk===bodyKey)return;
+  modelKey=mk; bodyKey=bk; T=computeT();
+  buildTruck(); buildDock(); floorPlane.constant=-T.deck;
+  renderVehicle();
+  autoArrange(null,true);
+  setView('3d');
+  const dock=items.filter(i=>!i.loaded).length;
+  toast(`${T.nome} no pátio. Carga reorganizada${dock?`, ${dock} na doca`:''}.`);
+}
+
+function renderSel(){
+  const s=$('#sel'), it=selected;
+  if(!it){s.hidden=true;$('#tag').hidden=true;return;}
+  s.hidden=false;
+  $('#selName').textContent=it.nome;
+  $('#selPos').textContent=it.loaded?`No caminhão · ${fmtM(it.x)} m da frente${it.y>EPS?' · empilhado':''}`:'Aguardando na doca';
+  const set=(id,v)=>{const e=$(id);if(document.activeElement!==e)e.value=v;};
+  set('#selW',fmtM(it.w));set('#selD',fmtM(it.d));set('#selH',fmtM(it.h));set('#selKg',Math.round(it.kg));
+  $('#selStack').checked=!!it.stack;
+}
+function editSel(field,raw){
+  const it=selected; if(!it)return;
+  let v=num(raw); if(!isFinite(v))return renderSel();
+  if(field==='kg')v=clamp(v,1,30000); else v=clamp(v,0.15,field==='h'?4:14);
+  if(field==='kg'){it.kg=v;refresh();return;}
+  it[field]=v;
+  if(it.loaded){it.x=clamp(it.x,0,Math.max(0,T.L-it.w));it.z=clamp(it.z,-T.W/2,Math.max(-T.W/2,T.W/2-it.d));}
+  disposeItem(it); settle(); layoutLane(); refresh();
+  if(it.loaded&&(it.w>T.L||it.d>T.W))toast('Esse volume é maior que o caminhão.');
+}
+['W','D','H','Kg'].forEach(k=>{const e=$('#sel'+k);e.addEventListener('change',()=>editSel(k==='Kg'?'kg':k.toLowerCase(),e.value));e.addEventListener('keydown',ev=>{if(ev.key==='Enter')e.blur();});});
+$('#selStack').addEventListener('change',e=>{if(selected){selected.stack=e.target.checked;refresh();}});
+$('#selRot').onclick=()=>rotateSel();
+$('#selDup').onclick=()=>dupSel();
+$('#selDel').onclick=()=>delSel();
+
+function rotateSel(){
+  const it=selected; if(!it||depart)return;
+  const cx=it.x+it.w/2, cz=it.z+it.d/2;
+  [it.w,it.d]=[it.d,it.w];
+  if(it.loaded){it.x=clamp(cx-it.w/2,0,Math.max(0,T.L-it.w));it.z=clamp(cz-it.d/2,-T.W/2,Math.max(-T.W/2,T.W/2-it.d));}
+  disposeItem(it); settle(); layoutLane(); refresh();
+}
+function dupSel(){
+  const src=selected; if(!src||depart)return;
+  const it=Object.assign({},src,{id:nextId++,mesh:null,cargoMat:null,loaded:false});
+  items.push(it);
+  const s=findSpot(it,items.filter(o=>o.loaded)); if(s)applySpot(it,s);
+  layoutLane(); selected=it; refresh();
+  toast(it.loaded?'Duplicado no caminhão.':'Duplicado. Sem espaço, ficou na doca.');
+}
+function delSel(){
+  const it=selected; if(!it||depart)return;
+  disposeItem(it); items=items.filter(i=>i!==it); selected=null;
+  settle(); layoutLane(); refresh();
+}
+
+$('#customForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const w=num($('#cW').value),d=num($('#cD').value),h=num($('#cH').value),kg=num($('#cKg').value),q=clamp(parseInt($('#cQ').value,10)||1,1,60);
+  if(![w,d,h,kg].every(v=>isFinite(v)&&v>0)){toast('Preencha medidas e peso com números maiores que zero.');return;}
+  const pallet=$('#cPallet').checked;
+  addItems('custom',q,{nome:($('#cName').value||'Volume').slice(0,24),w:clamp(w,0.15,14),d:clamp(d,0.15,14),h:clamp(h,pallet?0.25:0.1,4),kg:clamp(kg,1,30000),stack:$('#cStack').checked,pallet,color:'#c08fb0'});
+});
+
+/* ---------- Câmera ---------- */
+let orbit=null, camTween=null;
+function viewPose(v){
+  const L=T.L, a=camera.aspect<1?1.55:1, d=Math.max(11,L*1.15+4)*a, cx=1.5;
+  const tgt=new THREE.Vector3(cx,T.deck+0.6,0);
+  if(v==='top')return{p:new THREE.Vector3(cx,d*1.25,0.01),t:new THREE.Vector3(cx,T.deck,0)};
+  if(v==='side')return{p:new THREE.Vector3(cx,T.deck+1.8,d*0.95),t:tgt};
+  if(v==='rear')return{p:new THREE.Vector3(L/2+DOCK.depth+3,T.deck+3.4,0),t:new THREE.Vector3(0,T.deck+0.8,0)};
+  return{p:new THREE.Vector3(cx+d*0.45,d*0.55,d*0.78),t:tgt};
+}
+function setView(v,instant){
+  view=v;
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));
+  const to=viewPose(v);
+  if(instant||reduceMotion||!orbit){camera.position.copy(to.p);if(orbit){orbit.target.copy(to.t);orbit.update();}return;}
+  camTween={t:0,fp:camera.position.clone(),ft:orbit.target.clone(),tp:to.p,tt:to.t};
+}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+/* ---------- Interação ---------- */
+const ray=new THREE.Raycaster(); ray.params.Line.threshold=0.01;
+const ndc=new THREE.Vector2();
+const floorPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-T.deck);
+let drag=null, downEmpty=null;
+function setRay(e){const r=canvas.getBoundingClientRect();ndc.x=((e.clientX-r.left)/r.width)*2-1;ndc.y=-((e.clientY-r.top)/r.height)*2+1;ray.setFromCamera(ndc,camera);}
+function pickItem(){
+  const objs=items.map(i=>i.mesh).filter(Boolean);
+  const hits=ray.intersectObjects(objs,true);
+  for(const h of hits){let o=h.object;while(o&&o.userData.itemId===undefined)o=o.parent;if(o)return items.find(i=>i.id===o.userData.itemId)||null;}
+  return null;
+}
+function floorHit(){const p=new THREE.Vector3();return ray.ray.intersectPlane(floorPlane,p)?p:null;}
+function ridersOf(it){
+  const out=[],st=[it],seen=new Set([it]);
+  while(st.length){const c=st.pop();for(const o of items){if(!o.loaded||seen.has(o))continue;if(Math.abs(o.y-(c.y+c.h))<0.01&&ovXZ(o.x,o.z,o.w,o.d,c)){seen.add(o);out.push(o);st.push(o);}}}
+  return out;
+}
+function makeGroupCtx(it){
+  const riders=it.loaded?ridersOf(it):[];
+  const grp=[it,...riders];
+  const rel=grp.map(g=>({it:g,dx:it.loaded?g.x-it.x:0,dz:it.loaded?g.z-it.z:0,dy:it.loaded?g.y-it.y:0}));
+  const ctx={it,grp,rel,set:new Set(grp),moved:false};
+  ctx.minX=Math.min(...rel.map(r=>r.dx));ctx.maxX=Math.max(...rel.map(r=>r.dx+r.it.w));
+  ctx.minZ=Math.min(...rel.map(r=>r.dz));ctx.maxZ=Math.max(...rel.map(r=>r.dz+r.it.d));
+  return ctx;
+}
+function snapAxis(ctx,v,axis){
+  const lo=axis==='x'?ctx.minX:ctx.minZ, hi=axis==='x'?ctx.maxX:ctx.maxZ;
+  const wLo=axis==='x'?0:-T.W/2, wHi=axis==='x'?T.L:T.W/2;
+  const c=[wLo-lo,wHi-hi];
+  for(const o of items){if(!o.loaded||ctx.set.has(o))continue;const a=axis==='x'?o.x:o.z,s=axis==='x'?o.w:o.d;c.push(a+s-lo,a-hi,a-lo,a+s-hi);}
+  let best=null,bd=0.12;for(const x of c){const dd=Math.abs(x-v);if(dd<bd){bd=dd;best=x;}}
+  return best!==null?best:Math.round(v/0.05)*0.05;
+}
+function moveGroupTo(ctx,nx,nz){
+  nx=clamp(nx,-ctx.minX,Math.max(-ctx.minX,T.L-ctx.maxX));
+  nz=clamp(nz,-T.W/2-ctx.minZ,Math.max(-T.W/2-ctx.minZ,T.W/2-ctx.maxZ));
+  for(const r of ctx.rel){r.it.loaded=true;r.it.x=nx+r.dx;r.it.z=nz+r.dz;r.it.dockLift=0;}
+  settle(ctx.set);
+  const others=items.filter(i=>i.loaded&&!ctx.set.has(i));
+  let y=0;for(const r of ctx.rel)y=Math.max(y,restY(r.it.x,r.it.z,r.it.w,r.it.d,others)-r.dy);
+  for(const r of ctx.rel)r.it.y=y+r.dy;
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  setRay(e);
+  const it=depart?null:pickItem();
+  if(it){
+    if(orbit)orbit.enabled=false;
+    drag=makeGroupCtx(it); drag.sx=e.clientX; drag.sy=e.clientY; drag.pid=e.pointerId;
+    const p=floorHit();
+    if(it.loaded&&p){const bx=p.x-rig.position.x+T.L/2;drag.ox=it.x-bx;drag.oz=it.z-p.z;}
+    else{drag.ox=-it.w/2;drag.oz=-it.d/2;}
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+  }else downEmpty={x:e.clientX,y:e.clientY};
+});
+canvas.addEventListener('pointermove',e=>{
+  setRay(e);
+  if(!drag){if(e.pointerType==='mouse')canvas.style.cursor=pickItem()?'grab':'';return;}
+  if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<5)return;drag.moved=true;selected=drag.it;canvas.style.cursor='grabbing';}
+  const p=floorHit(); if(!p)return;
+  const bx=p.x-rig.position.x+T.L/2, bz=p.z;
+  const inside=bx>-0.4&&bx<T.L+0.35&&bz>-T.W/2-0.6&&bz<T.W/2+0.6;
+  if(inside){
+    const nx=snapAxis(drag,bx+drag.ox,'x'), nz=snapAxis(drag,bz+drag.oz,'z');
+    moveGroupTo(drag,nx,nz);
+  }else{
+    for(const r of drag.rel){r.it.loaded=false;r.it.gx=p.x-drag.it.w/2+r.dx;r.it.gz=p.z-drag.it.d/2+r.dz;r.it.dockLift=r.dy;}
+    settle(drag.set);
+  }
+  refresh();
+});
+function endDrag(e){
+  if(drag){
+    const d=drag; drag=null;
+    if(orbit)orbit.enabled=true;
+    canvas.style.cursor='';
+    try{canvas.releasePointerCapture(d.pid);}catch(_){}
+    if(!d.moved){selected=selected===d.it?null:d.it;refresh();return;}
+    if(!d.it.loaded){d.grp.forEach(g=>{g.loaded=false;});layoutLane();}
+    settle(); refresh();
+    return;
+  }
+  if(downEmpty&&e&&Math.hypot(e.clientX-downEmpty.x,e.clientY-downEmpty.y)<5){selected=null;refresh();}
+  downEmpty=null;
+}
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+
+orbit=new THREE.OrbitControls(camera,canvas);
+orbit.enableDamping=true; orbit.dampingFactor=0.08;
+orbit.maxPolarAngle=Math.PI*0.48; orbit.minDistance=4; orbit.maxDistance=70;
+orbit.addEventListener('start',()=>{camTween=null;});
+
+window.addEventListener('keydown',e=>{
+  if(!$('#picker').hidden){if(e.key==='Escape')closePicker();return;}
+  if(e.target.closest&&e.target.closest('input,textarea,select'))return;
+  if(depart)return;
+  const k=e.key;
+  if(k==='Escape'){selected=null;refresh();return;}
+  if(!selected)return;
+  if(k==='r'||k==='R'){rotateSel();e.preventDefault();}
+  else if(k==='d'||k==='D'){dupSel();e.preventDefault();}
+  else if(k==='Delete'||k==='Backspace'){delSel();e.preventDefault();}
+  else if(k.startsWith('Arrow')&&selected.loaded){
+    e.preventDefault();
+    const ctx=makeGroupCtx(selected), st=0.05;
+    const dx=k==='ArrowLeft'?-st:k==='ArrowRight'?st:0, dz=k==='ArrowUp'?-st:k==='ArrowDown'?st:0;
+    moveGroupTo(ctx,selected.x+dx,selected.z+dz); settle(); refresh();
+  }
+});
+
+/* ---------- Toolbar ---------- */
+$('#heatBtn').onclick=e=>{heat=!heat;e.currentTarget.setAttribute('aria-pressed',heat);refresh();toast(heat?'Cores por densidade de peso: azul leve, vermelho pesado.':'Cores originais da carga.');};
+$('#autoBtn').onclick=()=>{if(!depart)autoArrange();};
+function snapshot(){return items.map(i=>{const o=Object.assign({},i);delete o.mesh;delete o.cargoMat;return o;});}
+function restore(arr){items.forEach(disposeItem);items=arr.map(o=>Object.assign({},o));nextId=Math.max(0,...items.map(i=>i.id))+1;selected=null;layoutLane();refresh();}
+$('#clearBtn').onclick=()=>{
+  if(depart||!items.length)return;
+  const snap=snapshot();
+  items.forEach(disposeItem); items=[]; selected=null; refresh();
+  toast('Pátio esvaziado.',{label:'Desfazer',fn:()=>restore(snap)});
+};
+$('#goBtn').onclick=()=>{
+  if(!last||!last.canGo||depart)return;
+  selected=null; refresh();
+  depart={t:0,shown:false,a:last};
+  $('#goBtn').disabled=true;
+};
+$('#hudToggle').onclick=e=>{const h=$('#hud');h.classList.toggle('expanded');e.currentTarget.textContent=h.classList.contains('expanded')?'Ocultar eixos e alertas ▴':'Ver eixos e alertas ▾';};
+$('#panelToggle').onclick=()=>$('#panel').classList.toggle('open');
+
+function showResult(a){
+  const wP=Math.min(1,a.kg/T.cap), fP=Math.min(1,a.floor);
+  const score=Math.round(wP*450+fP*300+(a.axOk?150:0)+(a.cleanLoad&&a.dock===0?100:0));
+  const grade=score>=900?'Carga exemplar':score>=750?'Ótima viagem':score>=500?'Dá pra aproveitar mais':'Caminhão rodando ocioso';
+  $('#resScore').innerHTML=`${score}<small> / 1000</small>`;
+  $('#resGrade').textContent=grade;
+  const rows=[['Peso transportado',`${fmtKg(a.kg)} (${pct(wP)})`],['Assoalho ocupado',pct(fP)],['Eixos',a.axOk?'Dentro do limite':'Fora do ideal'],['Volumes embarcados',`${items.filter(i=>i.loaded).length} de ${items.length}`],['Metas cumpridas',`${a.missions.filter(m=>m.ok).length} de 4`]];
+  const dl=$('#resList'); dl.innerHTML='';
+  rows.forEach(([k,v])=>{const dt=document.createElement('dt');dt.textContent=k;const dd=document.createElement('dd');dd.textContent=v;dl.append(dt,dd);});
+  $('#result').hidden=false; $('#resNew').focus();
+  try{parent.postMessage({type:'patio:despachado',score,kg:a.kg},'*');}catch(_){}
+}
+function returnTruck(){$('#result').hidden=true;depart=null;rig.position.x=0;refresh();}
+$('#resAgain').onclick=returnTruck;
+$('#resNew').onclick=()=>{items.forEach(disposeItem);items=[];selected=null;returnTruck();toast('Caminhão vazio. Escolha o veículo e monte o próximo carregamento.');};
+
+let toastT;
+function toast(msg,action){
+  const el=$('#toast'); el.querySelector('span').textContent=msg;
+  const b=el.querySelector('button');
+  if(action){b.hidden=false;b.textContent=action.label;b.onclick=()=>{action.fn();el.classList.remove('show');};}else b.hidden=true;
+  el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),action?5500:3200);
+}
+
+/* ---------- Loop ---------- */
+const tag=$('#tag'), tmpV=new THREE.Vector3();
+function updateTag(){
+  const it=selected;
+  if(!it||!it.mesh||depart){tag.hidden=true;return;}
+  it.mesh.getWorldPosition(tmpV); tmpV.y+=it.h;
+  tmpV.project(camera);
+  if(tmpV.z>1){tag.hidden=true;return;}
+  const r=canvas.getBoundingClientRect();
+  tag.hidden=false;
+  tag.textContent=`${it.nome} · ${fmtKg(it.kg)}`;
+  tag.style.left=(r.left+(tmpV.x+1)/2*r.width)+'px';
+  tag.style.top=(r.top+(1-tmpV.y)/2*r.height)+'px';
+}
+function resize(){const w=window.innerWidth,h=window.innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+let prev=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(now-prev)/1000); prev=now;
+  if(camTween){
+    camTween.t=Math.min(1,camTween.t+dt/0.7); const k=camTween.t<.5?2*camTween.t*camTween.t:1-Math.pow(-2*camTween.t+2,2)/2;
+    camera.position.lerpVectors(camTween.fp,camTween.tp,k); orbit.target.lerpVectors(camTween.ft,camTween.tt,k);
+    if(camTween.t>=1)camTween=null;
+  }
+  if(depart){
+    depart.t+=dt; const dur=reduceMotion?0.6:2.8, k=Math.min(1,depart.t/dur);
+    const x=-(k*k)*90, dx=x-rig.position.x; rig.position.x=x;
+    for(const w of wheels)w.rotation.z-=dx/0.5;
+    if(k>=1&&!depart.shown){depart.shown=true;showResult(depart.a);}
+  }
+  orbit.update(); updateTag(); renderer.render(scene,camera);
+}
+
+/* ---------- Carga vinda do sistema (#{"titulo","veiculo","itens":[{tipo,n,kg,nome}]}) ---------- */
+function readPreset(){
+  try{
+    const raw=decodeURIComponent(location.hash.slice(1));
+    if(!raw)return null;
+    const p=JSON.parse(raw);
+    return p&&Array.isArray(p.itens)?p:null;
+  }catch(_){return null;}
+}
+window.addEventListener('hashchange',()=>location.reload());
+
+/* ---------- Início ---------- */
+const preset=readPreset();
+if(preset&&preset.veiculo&&MODELS[preset.veiculo])modelKey=preset.veiculo;
+T=computeT();
+buildTruck(); buildDock(); floorPlane.constant=-T.deck; renderVehicle(); renderLib(); resize();
+if(preset){
+  for(const p of preset.itens){
+    const t=TYPES[p.tipo]?p.tipo:'p40';
+    for(let i=0;i<Math.max(0,Math.min(80,p.n|0));i++)items.push(makeItem(t,Object.assign({kg:p.kg||TYPES[t].kg,nome:(p.nome||TYPES[t].nome).slice(0,48)},p.h?{h:p.h}:{})));
+  }
+  autoArrange(null,true);
+  const box=$('#preset'); box.style.display='block';
+  box.innerHTML='<b></b><br><span></span>';
+  box.querySelector('b').textContent=preset.titulo||'Carga do sistema';
+  box.querySelector('span').textContent=`${items.length} volumes · ${fmtKg(items.reduce((s,i)=>s+i.kg,0))}`;
+  setView('3d',true);
+  setTimeout(()=>toast('Carga do sistema carregada e organizada automaticamente.'),400);
+}else{
+  const ex=[];
+  for(let i=0;i<6;i++){const it=makeItem('p40',{kg:1425});items.push(it);ex.push(it);}
+  for(let i=0;i<4;i++){const it=makeItem('p30',{kg:1465});items.push(it);ex.push(it);}
+  for(let i=0;i<2;i++){const it=makeItem('bag');items.push(it);ex.push(it);}
+  for(let i=0;i<3;i++)items.push(makeItem('s40'));
+  autoArrange(ex,true);
+  setView('3d',true);
+  setTimeout(()=>toast('Exemplo carregado. Arraste as pilhas da doca para o caminhão e cumpra as metas.'),400);
+}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

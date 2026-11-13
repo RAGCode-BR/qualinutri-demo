@@ -1,0 +1,35 @@
+.nutrition-page, .nutrition-stack { display: grid; gap: 20px; min-width: 0; }
+.nutrition-intro { display: flex; align-items: center; gap: 12px; }
+.nutrition-intro h2, .nutrition-intro p { margin: 0; }
+.nutrition-intro p { color: var(--ink-3); }
+.nutrition-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+.nutrition-actions select { flex: 1 1 220px; width: auto; max-width: 100%; }
+.nutrition-edit-fields { min-width: 0; border: 0; padding: 0; margin: 0; }
+.nutrition-page label.field, .nutrition-feed-form label.field, .nutrition-page .price-fieldset label.field {
+  display: grid; align-content: start; min-width: 0; gap: 6px; white-space: normal; overflow: visible; text-overflow: clip;
+}
+.nutrition-page .nutrition-field input, .nutrition-page .nutrition-field select { min-width: 0; }
+.nutrition-table { min-width: 700px; }
+.nutrition-table td:not(:first-child) { min-width: 120px; }
+.nutrition-bound { display: grid; grid-template-columns: minmax(180px, 2fr) 1fr 1fr auto; align-items: end; gap: 12px; margin-bottom: 14px; }
+.nutrition-bound > label.field { margin-top: 0; }
+.nutrition-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+.nutrition-summary > div { padding: 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; }
+.nutrition-summary span, .nutrition-summary strong { display: block; }
+.nutrition-summary strong { font-size: 22px; overflow-wrap: anywhere; }
+.nutrition-saved { list-style: none; padding: 0; }
+.nutrition-saved li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.nutrition-saved li span small { display: block; color: var(--ink-3); }
+.nutrition-report table { width: 100%; border-collapse: collapse; }
+.nutrition-report th, .nutrition-report td { padding: 6px; border-bottom: 1px solid #ccc; text-align: left; }
+.nutrition-report footer { margin-top: 30px; }
+@media (max-width: 700px) {
+  .nutrition-bound { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nutrition-bound > label:first-child { grid-column: 1 / -1; }
+  .nutrition-table { min-width: 640px; }
+}
+@media print {
+  .nutrition-report section, .nutrition-report tr { break-inside: avoid; }
+  .nutrition-report thead { display: table-header-group; }
+  .nutrition-report h2 { margin-top: 20px; }
+}

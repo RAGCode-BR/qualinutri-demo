@@ -8,7 +8,9 @@ import "@fontsource/barlow/600.css";
 import "@fontsource/barlow/700.css";
 import "@fontsource/barlow-semi-condensed/600.css";
 import "@fontsource/barlow-semi-condensed/700.css";
+import "@fontsource-variable/manrope/wght.css";
 import "./styles/global.css";
+import "./styles/redesign.css";
 
 const rootElement = document.getElementById("root");
 
