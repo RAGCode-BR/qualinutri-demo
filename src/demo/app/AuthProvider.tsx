@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, Fragment, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import type { ProfileRole, UserProfile } from "../../types/auth";
 import { db } from "../store/db";
@@ -23,7 +23,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile>(() => getDemoViewer());
 
   useEffect(() => {
-    const refresh = () => setProfile(getDemoViewer());
+    // Só troca o objeto quando o usuário muda de fato (evita redesenhar tudo a cada gravação).
+    const refresh = () => setProfile((current) => {
+      const next = getDemoViewer();
+      return next.id === current.id && next.role === current.role && next.displayName === current.displayName && next.login === current.login ? current : next;
+    });
     const offSession = subscribeDemoSession(refresh);
     const offDb = db.subscribe(refresh);
     return () => { offSession(); offDb(); };
@@ -39,11 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: false,
       signIn: async () => ({ success: true, message: "Acesso realizado com sucesso." }),
       signOut: async () => setDemoRole("administrador"),
-      refreshProfile: async () => setProfile(getDemoViewer()),
+      refreshProfile: async () => setProfile((current) => { const next = getDemoViewer(); return next.id === current.id && next.role === current.role ? current : next; }),
     };
   }, [profile]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Trocar de perfil equivale a sair e entrar com outro usuário: o app recomeça do zero com o
+  // perfil novo (como no sistema real), sem telas presas ao perfil anterior.
+  return <AuthContext.Provider value={value}><Fragment key={`${profile.id}:${profile.role}`}>{children}</Fragment></AuthContext.Provider>;
 }
 
 export function useAuth() {

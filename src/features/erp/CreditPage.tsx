@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { FilePlus2, FileText, MessageCircle, Paperclip, Search, Send, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FilePlus2, FileText, Maximize2, MessageCircle, Paperclip, Search, Send, ShieldCheck } from "lucide-react";
+import { useNavigate } from "../../app/NavigationContext";
+import { clearCreditCustomer, createThread, peekCreditCustomer, requestThread } from "../../demo/chat/service";
 import { useQuoteEditing } from "../../app/QuoteEditingContext";
 import { useDemoTables } from "../../demo/app/useDemoTables";
 import { customerScore } from "../../demo/erp/finance";
@@ -30,7 +32,9 @@ export function CreditPage() {
     .filter((row) => filter === "all" || row.score.level === filter)
     .filter((row) => !query || normalize(`${row.customer.legal_name} ${row.customer.document ?? ""}`).includes(normalize(query)))
     .sort((a, b) => a.score.score - b.score.score);
-  const [selectedId, setSelectedId] = useState<string | null>(list[0]?.customer.id ?? null);
+  // Vindo de uma conversa ("Abrir cliente 360°"), já abre no cliente dela.
+  const [selectedId, setSelectedId] = useState<string | null>(() => peekCreditCustomer() ?? list[0]?.customer.id ?? null);
+  useEffect(() => { clearCreditCustomer(); }, []);
   const counts = { vermelho: scored.filter((row) => row.score.level === "vermelho").length, amarelo: scored.filter((row) => row.score.level === "amarelo").length };
 
   return (
@@ -63,6 +67,7 @@ function Customer360({ customerId }: { customerId: string }) {
   const tables = useDemoTables();
   const now = today();
   const { openCalculatorForCustomer } = useQuoteEditing();
+  const navigate = useNavigate();
   const customer = tables.customers.find((item) => item.id === customerId)!;
   const score = customerScore(tables, customerId, now);
   const ie = tables.erp.ie.find((item) => item.customerId === customerId);
@@ -139,7 +144,7 @@ function Customer360({ customerId }: { customerId: string }) {
           {docs.length > 0 && <div className="ck-thumbs">{docs.map((doc) => <EvidenceThumb key={doc.id} evidence={doc} onOpen={(url, type) => setPreview({ url, type })} />)}</div>}
         </section>
         <section className="dash-card">
-          <header className="dash-card-head"><h2><MessageCircle size={16} aria-hidden="true" /> Conversa interna sobre o cliente</h2></header>
+          <header className="dash-card-head"><h2><MessageCircle size={16} aria-hidden="true" /> Conversa interna sobre o cliente</h2><button type="button" className="secondary-button compact-secondary" onClick={() => { createThread({ kind: "cliente", customerId }); requestThread(thread); navigate("chat"); }}><Maximize2 size={14} aria-hidden="true" />&nbsp;Ampliar</button></header>
           <ul className="chat">
             {chat.length === 0 && <li className="muted">Nenhuma mensagem. Tudo que for combinado aqui fica registrado no cliente, sem depender do WhatsApp.</li>}
             {chat.map((item) => <li key={item.id}><strong>{item.author}</strong><span>{item.text}</span><small>{new Date(item.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</small></li>)}

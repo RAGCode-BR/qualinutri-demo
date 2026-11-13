@@ -66,7 +66,23 @@ export type Approval = {
   ref: string | null;
 };
 
-export type ChatMessage = { id: string; thread: string; author: string; text: string; at: string };
+export type ChatAttachment = { id: string | null; name: string; type: string; size: number };
+export type ChatMessage = { id: string; thread: string; author: string; text: string; at: string; attachments?: ChatAttachment[] };
+
+/** Canal de setor, conversa sobre um cliente ou sobre um assunto (que pode apontar para um orçamento ou carga). */
+export type ChatThreadKind = "canal" | "cliente" | "assunto";
+export type ChatRef = { type: "quote" | "load"; id: string; label: string };
+export type ChatThread = {
+  id: string;
+  kind: ChatThreadKind;
+  title: string;
+  customerId: string | null;
+  ref: ChatRef | null;
+  members: string[];
+  createdBy: string;
+  createdAt: string;
+  closed?: boolean;
+};
 
 export type ErpTables = {
   banks: Bank[];
@@ -83,6 +99,10 @@ export type ErpTables = {
   finished: FinishedStock[];
   approvals: Approval[];
   chat: ChatMessage[];
+  /** Conversas (criadas na primeira leitura de dados antigos, ver demo/chat/seed). */
+  threads?: ChatThread[];
+  /** Última leitura de cada conversa (data e hora). */
+  chatReads?: Record<string, string>;
   monthlyGoal: number;
   seq: { invoice: number; mdfe: number; order: number };
 };

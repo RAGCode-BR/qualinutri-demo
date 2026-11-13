@@ -14,6 +14,7 @@ import { PageKpis } from "../components/demo/PageKpis";
 import { QuoteRowOpener } from "../components/demo/QuoteRowOpener";
 import { RowClickToEdit } from "../components/demo/RowClickToEdit";
 import { LoadsRowOpener } from "../components/demo/LoadViewer3D";
+import { QuoteSavedViewer } from "../components/demo/QuoteSavedViewer";
 import { CommandPalette } from "../components/demo/CommandPalette";
 import { AlertsPanel } from "../components/demo/AlertsPanel";
 import { demoAlerts } from "../demo/kpis/alerts";
@@ -40,6 +41,9 @@ import { VisitsPage } from "../features/visits/VisitsPage";
 import { LoadsPage } from "../features/loads/LoadsPage";
 
 import { NutritionPage } from "../features/nutrition/NutritionPage";
+import { ChatPage } from "../features/chat/ChatPage";
+import { ReportsCenter } from "../features/reports-center/ReportsCenter";
+import { ChatLauncher } from "../components/demo/ChatLauncher";
 
 const tabContent: Record<TabId, () => React.JSX.Element> = {
   dashboard: DashboardPage,
@@ -51,6 +55,8 @@ const tabContent: Record<TabId, () => React.JSX.Element> = {
   fleet: FleetPage,
   production: ProductionPage,
   nutrition: NutritionPage,
+  chat: ChatPage,
+  analytics: ReportsCenter,
   approvals: ApprovalsPage,
   calculator: CalculatorPage,
   discounts: DiscountsPage,
@@ -67,12 +73,24 @@ const tabContent: Record<TabId, () => React.JSX.Element> = {
   users: ProfilesPage,
 };
 
+const BACK_TABS = new Set<TabId>(["calculator", "chat", "credit"]);
+
 export function App() {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>("dashboard");
+  // A tela atual sobrevive à troca de perfil (o app recomeça, mas volta para a mesma tela se o perfil puder vê-la).
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    try {
+      const saved = sessionStorage.getItem("qualinutri-demo:tab");
+      return saved && saved in tabLabels ? saved as TabId : "dashboard";
+    } catch { return "dashboard"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("qualinutri-demo:tab", activeTab); } catch { /* sem armazenamento */ }
+  }, [activeTab]);
   const [menuOpen, setMenuOpen] = useState(false);
   // Tela de onde se veio ao abrir a Calculadora (ex.: editar um orçamento), para o botão "Voltar".
-  const [backTo, setBackTo] = useState<TabId | null>(null);
+  const [trail, setTrail] = useState<TabId[]>([]);
+  const backTo = trail.at(-1) ?? null;
   const activeRef = useRef<TabId>("dashboard");
   activeRef.current = activeTab;
   const [collapsed, setCollapsed] = useState(() => {
@@ -152,9 +170,11 @@ export function App() {
     });
   }
 
-  function changeTab(tab: TabId) {
+  function changeTab(tab: TabId, goingBack = false) {
     const from = activeRef.current;
-    setBackTo(tab === "calculator" && from !== "calculator" ? from : null);
+    // Telas abertas "a partir de outra" (editar orçamento, ampliar conversa, abrir cliente 360°) ganham o
+    // botão Voltar; cada Voltar desfaz um passo (Logística → Conversas → Cliente 360° → Conversas → Logística).
+    setTrail((current) => goingBack ? current.slice(0, -1) : BACK_TABS.has(tab) && from !== tab ? [...current, from] : []);
     setActiveTab(tab);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -184,23 +204,25 @@ export function App() {
       <div className="app-main" inert={menuOpen || undefined}>
         <AppHeader activeTab={activeTab} menuOpen={menuOpen} collapsed={collapsed || scrolled} onExpand={() => { if (collapsed) toggleCollapsed(); if (scrolled) window.scrollTo({ top: 0, behavior: "smooth" }); }} badges={badges} onNavigate={changeTab} onToggleMenu={() => setMenuOpen((open) => !open)} onToggleCollapsed={toggleCollapsed} alertCount={alerts.length} onOpenSearch={() => setSearchOpen(true)} onOpenAlerts={() => setAlertsOpen(true)} />
         <main id={`panel-${activeTab}`} className={`page page-${activeTab}`} tabIndex={-1}>
-          <PageHeading key={`h-${activeTab}`} title={tabLabels[activeTab]} group={tabGroups[activeTab]} />
+          <PageHeading key={`h-${activeTab}-${backTo ?? ""}`} title={activeTab === "calculator" && backTo === "quotes" ? "Orçamento" : tabLabels[activeTab]} group={tabGroups[activeTab]} />
           {activeTab !== "dashboard" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
+          {BACK_TABS.has(activeTab) && backTo && (
+            <button type="button" className="back-chip glass-dark" onClick={() => changeTab(backTo, true)}>
+              <ArrowLeft size={16} aria-hidden="true" /> Voltar para {tabLabels[backTo]}
+            </button>
+          )}
           {activeTab !== "calculator" && <div className="page-enter" key={activeTab}><ActivePage /></div>}
           <RowClickToEdit />
           {activeTab === "quotes" && <QuoteRowOpener />}
           {activeTab === "loads" && <LoadsRowOpener />}
+          <QuoteSavedViewer active={activeTab === "calculator"} />
           {/* A Calculadora fica montada (só escondida) para o pedido em montagem não se perder ao trocar de página. */}
-          {activeTab === "calculator" && backTo && (
-            <button type="button" className="back-chip glass-dark" onClick={() => changeTab(backTo)}>
-              <ArrowLeft size={16} aria-hidden="true" /> Voltar para {tabLabels[backTo]}
-            </button>
-          )}
           <div hidden={activeTab !== "calculator"} className={activeTab === "calculator" ? "page-enter" : undefined}>
             <CalculatorPage />
           </div>
         </main>
         <MobileNav activeTab={activeTab} onChange={changeTab} onOpenMenu={() => setMenuOpen(true)} />
+        {activeTab !== "chat" && <ChatLauncher />}
         {searchOpen && <CommandPalette onNavigate={changeTab} onClose={() => setSearchOpen(false)} />}
         {alertsOpen && <AlertsPanel alerts={alerts} onNavigate={changeTab} onClose={() => setAlertsOpen(false)} />}
       </div>

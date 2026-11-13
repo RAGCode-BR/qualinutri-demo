@@ -1,6 +1,7 @@
 import { buildSeed } from "../seed";
 import type { DemoTables } from "./types";
 import { isoDate, today } from "./ids";
+import { ensureChat } from "../chat/seed";
 
 export const STORAGE_KEY = "qualinutri-demo:v1";
 /** Aumentar quando o formato do seed mudar: dados antigos são descartados. */
@@ -64,6 +65,9 @@ export const db = {
       tables = consumeResetParam() ? null : load();
       if (!tables) {
         tables = buildSeed(today());
+        ensureChat(tables, today());
+        save();
+      } else if (ensureChat(tables, today())) {
         save();
       }
     }
@@ -80,6 +84,7 @@ export const db = {
   },
   reset(): void {
     tables = buildSeed(today());
+    ensureChat(tables, today());
     save();
     notify();
   },

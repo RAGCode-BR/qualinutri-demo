@@ -3,6 +3,7 @@ import type { TabId } from "../../layouts/AppSidebar";
 import { db } from "../store/db";
 import { today } from "../store/ids";
 import { attentionList } from "../checklist/compliance";
+import { totalUnread } from "../chat/service";
 
 let cached: { version: number; value: Partial<Record<TabId, number>> } = { version: -1, value: {} };
 let version = 0;
@@ -17,6 +18,7 @@ function snapshot(): Partial<Record<TabId, number>> {
     approvals: tables.erp.approvals.filter((item) => item.status === "pendente").length,
     fleet: tables.erp.fleetRequests.filter((item) => item.status === "aguardando").length,
     finance: tables.erp.statement.filter((line) => !line.matched).length,
+    chat: totalUnread(tables),
   };
   cached = { version, value };
   return value;

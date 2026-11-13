@@ -160,7 +160,7 @@ export function dashboardKpis(tables: DemoTables, period: Period, today: Date): 
       selection: { title: "Orçamentos em rascunho ou enviados", columns: [...quoteColumns, { key: "status", label: "Situação", format: "text" }], rows: open },
     },
     {
-      id: "conversion", label: "Conversão", value: conversionValue(tables, period), format: "percent", previous: conversionValue(tables, previous), trend: [], target: "reports",
+      id: "conversion", label: "Conversão", value: conversionValue(tables, period), format: "percent", previous: conversionValue(tables, previous), trend: [], target: "analytics",
       caption: "Aprovados ÷ enviados no período",
       selection: { title: "Aprovados no período", columns: quoteColumns, rows: sales.rows },
     },

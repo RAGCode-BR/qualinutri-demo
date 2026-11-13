@@ -56,3 +56,13 @@ O módulo **lê** veículos, clientes, produtos e cargas do sistema, mas **não 
 - Todos os serviços que antes falavam com o Supabase: orçamentos, clientes, visitas, cargas, relatórios, usuários, atualizações por PDF e edição de tabelas. As regras principais do banco foram reproduzidas: fluxo de situação do orçamento, dono ou administrador, saldo e capacidade de carga, visitas de cada vendedor, último administrador e período de relatório de até um ano.
 - **A receber:** gerado das parcelas dos orçamentos aprovados. **A pagar:** lista fictícia. Os dois aparecem com o selo "simulado".
 - Login: a demo abre logada. As fotos de evidência ficam guardadas no navegador (IndexedDB).
+
+### Acrescentado depois (13/11)
+
+| Item | Onde |
+|---|---|
+| **Central de relatórios** (menu Relatórios): 22 relatórios de vendas, clientes, financeiro, logística e frota, produção e estoque, qualidade e fiscal. Cada um tem filtros (período com atalhos, vendedor, cliente, produto, linha, cidade, situação e veículo), KPIs com comparação ao período anterior, gráficos clicáveis (barra e fatia filtram, ponto muda o período, linha da tabela abre o pedido, a carga em 3D ou o cliente 360°), tabela com busca e ordenação, **PDF** para imprimir e exportação para **Excel (.xlsx)**, CSV, JSON e cópia. Financeiro e Fiscal ficam só para o administrador. O relatório de vendas original continua no mesmo menu. | `src/features/reports-center`, `src/demo/reports` |
+| **Conversas**: canais por setor, conversa por cliente (com score e valores em aberto ao lado) e por assunto (ligada a orçamento ou carga), anexos por arrastar, #número abre o orçamento, balão flutuante em todas as telas e botão Voltar. | `src/features/chat`, `src/demo/chat` |
+| **Documentos da carga**: romaneio na tela e ficha de entrega por cliente (assinatura, fotos, NF-e e boletos), com impressão em PDF. | `src/components/demo/DeliverySheets.tsx` |
+| **Depois de salvar um orçamento**: abre o PDF com Baixar/imprimir, Novo orçamento e Ir para Orçamentos. A Calculadora passou a se chamar **Novo orçamento** no menu. | `src/components/demo/QuoteSavedViewer.tsx` |
+| **Clique na linha** de Orçamentos e Logística abre um menu (editar, ver PDF/3D, fichas, romaneio). | `src/components/demo/RowActionMenu.tsx` |

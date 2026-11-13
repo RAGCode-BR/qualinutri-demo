@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { BadgePercent, CheckCircle2, CreditCard, MessageCircle, Send, UserPlus, Wrench, XCircle } from "lucide-react";
+import { BadgePercent, CheckCircle2, CreditCard, Maximize2, MessageCircle, Send, UserPlus, Wrench, XCircle } from "lucide-react";
+import { useNavigate } from "../../app/NavigationContext";
+import { requestThread } from "../../demo/chat/service";
 import { useAuth } from "../../app/AuthProvider";
 import { useDemoTables } from "../../demo/app/useDemoTables";
 import { decideApproval, sendChat } from "../../demo/erp/service";
@@ -12,6 +14,7 @@ const kindLabel = { cadastro: "Cadastro", desconto: "Desconto", credito: "Crédi
 export function ApprovalsPage() {
   const tables = useDemoTables();
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = profile?.role === "administrador";
   const [filter, setFilter] = useState<Approval["kind"] | "all">("all");
   const [message, setMessage] = useState("");
@@ -59,7 +62,7 @@ export function ApprovalsPage() {
         )}
       </div>
       <aside className="dash-card approvals-chat">
-        <header className="dash-card-head"><h2><MessageCircle size={16} aria-hidden="true" /> Chat interno</h2><Chip tone="muted">fica no sistema</Chip></header>
+        <header className="dash-card-head"><h2><MessageCircle size={16} aria-hidden="true" /> Chat interno</h2><button type="button" className="secondary-button compact-secondary" onClick={() => { requestThread("geral"); navigate("chat"); }}><Maximize2 size={14} aria-hidden="true" />&nbsp;Ampliar</button></header>
         <ul className="chat">{chat.map((item) => <li key={item.id}><strong>{item.author}</strong><span>{item.text}</span><small>{new Date(item.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small></li>)}</ul>
         <form className="chat-form" onSubmit={(event) => { event.preventDefault(); void sendChat("geral", message); setMessage(""); }}>
           <input placeholder="Mensagem para a equipe…" value={message} onChange={(event) => setMessage(event.target.value)} />

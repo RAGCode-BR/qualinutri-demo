@@ -1,13 +1,13 @@
 import {
   BarChart3, Boxes, Calculator, CheckCheck, ClipboardCheck, Factory, FileCheck2, Landmark, ShieldCheck, Wrench, X, FileText, FileUp, LayoutDashboard,
-  Package, Percent, Receipt, ScrollText, Truck, UserCog, Users, CalendarDays, Route, type LucideIcon,
+  MessagesSquare, Package, Percent, Receipt, ScrollText, Truck, UserCog, Users, CalendarDays, Route, type LucideIcon,
 } from "lucide-react";
 import logoUrl from "../assets/qualinutri-logo.png";
 import { useAuth } from "../app/AuthProvider";
 import { DEMO_HIDDEN_TABS } from "../demo/config";
 import type { UserProfile } from "../types/auth";
 
-export type TabId = "nutrition" | "finance" | "fiscal" | "credit" | "fleet" | "production" | "approvals" | "yard" | "dashboard" | "calculator" | "discounts" | "terms" | "prices" | "freight" | "policy" | "customers" | "quotes" | "reports" | "updates" | "visits" | "loads" | "checklist" | "users";
+export type TabId = "analytics" | "chat" | "nutrition" | "finance" | "fiscal" | "credit" | "fleet" | "production" | "approvals" | "yard" | "dashboard" | "calculator" | "discounts" | "terms" | "prices" | "freight" | "policy" | "customers" | "quotes" | "reports" | "updates" | "visits" | "loads" | "checklist" | "users";
 
 export type NavItem = { id: TabId; label: string; hint: string; icon: LucideIcon };
 export type NavGroup = { label: string | null; items: NavItem[] };
@@ -22,7 +22,6 @@ export const navGroups: NavGroup[] = [
       { id: "customers", label: "Clientes", hint: "Cadastro, propriedades e histórico", icon: Users },
       { id: "credit", label: "Crédito e cliente 360°", hint: "Score automático, histórico e documentos", icon: ShieldCheck },
       { id: "visits", label: "Visitas", hint: "Agenda dos vendedores", icon: CalendarDays },
-      { id: "reports", label: "Relatórios", hint: "Vendas e visitação por período", icon: BarChart3 },
     ],
   },
   {
@@ -44,6 +43,12 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Relatórios",
+    items: [
+      { id: "analytics", label: "Relatórios", hint: "Vendas, clientes, financeiro, logística, produção, qualidade e fiscal", icon: BarChart3 },
+    ],
+  },
+  {
     label: "Tabelas",
     items: [
       { id: "prices", label: "Produtos", hint: "Tabela de preços por prazo", icon: Package },
@@ -57,7 +62,8 @@ export const navGroups: NavGroup[] = [
   {
     label: "Gestão",
     items: [
-      { id: "approvals", label: "Aprovações e chat", hint: "Cadastro, desconto, crédito e consertos", icon: CheckCheck },
+      { id: "chat", label: "Conversas", hint: "Por cliente, por assunto e por setor", icon: MessagesSquare },
+      { id: "approvals", label: "Aprovações", hint: "Cadastro, desconto, crédito e consertos", icon: CheckCheck },
       { id: "users", label: "Usuários", hint: "Acessos e perfis", icon: UserCog },
     ],
   },
