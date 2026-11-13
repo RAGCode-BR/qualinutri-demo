@@ -75,3 +75,12 @@ Scripts disponíveis:
 - `src/ARCHITECTURE.md`: organização da aplicação;
 - `docs/supabase-data-model.md`: modelagem e decisões do banco;
 - `tests/characterization/README.md`: regras atuais preservadas e inconsistências conhecidas.
+
+### GitHub Pages da demonstração
+
+O workflow `.github/workflows/pages.yml` publica a branch `main` em
+https://ragcode-br.github.io/qualinutri-demo/.
+O build usa a base `/qualinutri-demo/`, executa os testes e verifica que o
+catálogo comercial de referência não está no JavaScript público.
+A demonstração usa dados fictícios e persistência local do navegador; não
+é necessário configurar credenciais do Supabase no GitHub.

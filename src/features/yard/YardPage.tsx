@@ -10,7 +10,7 @@ export function YardPage() {
   const options = useMemo(() => yardOptions(tables), [tables]);
   const [active, setActive] = useState<string | null>(options[0]?.id ?? null);
   const current = options.find((option) => option.id === active);
-  const src = `/patio-de-carga.html${current ? `#${encodeURIComponent(JSON.stringify(current.preset))}` : ""}`;
+  const src = `${import.meta.env.BASE_URL}patio-de-carga.html${current ? `#${encodeURIComponent(JSON.stringify(current.preset))}` : ""}`;
 
   return (
     <div className="yard">

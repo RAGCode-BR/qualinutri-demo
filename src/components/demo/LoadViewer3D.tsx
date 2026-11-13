@@ -12,7 +12,7 @@ export function LoadViewer3D({ loadId, onClose }: { loadId: string; onClose: () 
   const ref = useRef<HTMLDialogElement>(null);
   const load = tables.loads.find((item) => item.id === loadId);
   const preset = presetForLoad(tables, loadId);
-  const src = `/patio-de-carga.html${preset ? `#${encodeURIComponent(JSON.stringify(preset))}` : ""}`;
+  const src = `${import.meta.env.BASE_URL}patio-de-carga.html${preset ? `#${encodeURIComponent(JSON.stringify(preset))}` : ""}`;
 
   useEffect(() => {
     const dialog = ref.current;
