@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qualinutri-demo",
+  "compatibility_date": "2026-10-01",
+  // Site estático gerado pelo Vite. Rotas desconhecidas devolvem o index.html,
+  // para o app de página única continuar funcionando ao recarregar.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

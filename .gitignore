@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+dist/
+.DS_Store
+.env
+.env.local
+.env.supabase-cli
+supabase/.temp/
+
+# Claude Code e skills instaladas localmente
+.claude/
+.agents/
+skills-lock.json
+.wrangler/

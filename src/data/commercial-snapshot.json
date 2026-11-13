@@ -1,0 +1,1513 @@
+{
+  "sourceDates": {
+    "priceTable": "2026-09-03",
+    "discountTable": "2026-02-24",
+    "freightTable": "2026-05-06"
+  },
+  "TERMS": [
+    "à vista",
+    "30 dd",
+    "30/60 ou 45 dd",
+    "30/60/90 ou 60 dd",
+    "30/60/90/120 ou 75 dd",
+    "30/60/90/120/150 ou 90 dd"
+  ],
+  "LINES": [
+    {
+      "n": "Qualiphós 80",
+      "p": 13
+    },
+    {
+      "n": "Qualiphós 40/60",
+      "p": 8
+    },
+    {
+      "n": "Linha Adense",
+      "p": 6
+    },
+    {
+      "n": "Qualiphós 130/160 (Concentrados)",
+      "p": 3
+    },
+    {
+      "n": "Linha Top Aditivada",
+      "p": 3
+    },
+    {
+      "n": "Linha Nutripasto / Nutriengorda",
+      "p": 10
+    },
+    {
+      "n": "Rações",
+      "p": 0
+    },
+    {
+      "n": "Núcleos",
+      "p": 12
+    },
+    {
+      "n": "Outro / personalizado",
+      "p": null
+    }
+  ],
+  "PRODR": [
+    [
+      "Rações",
+      "Quali Engorda 160 RM",
+      40,
+      [
+        56.69,
+        57.82,
+        58.4,
+        58.99,
+        59.56,
+        60.16
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Engorda 180 RM",
+      40,
+      [
+        58.19,
+        59.35,
+        59.95,
+        60.55,
+        61.14,
+        61.75
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 200",
+      40,
+      [
+        66.32,
+        67.65,
+        68.32,
+        69.01,
+        69.68,
+        70.38
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 220",
+      40,
+      [
+        68.88,
+        70.26,
+        70.96,
+        71.67,
+        72.37,
+        73.1
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 240",
+      40,
+      [
+        72.55,
+        74,
+        74.74,
+        75.49,
+        76.23,
+        76.99
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Creep PR",
+      40,
+      [
+        60.33,
+        61.54,
+        62.15,
+        62.77,
+        63.39,
+        64.02
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Equino PR",
+      40,
+      [
+        58.98,
+        60.16,
+        60.76,
+        61.37,
+        61.97,
+        62.59
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Ovino",
+      40,
+      [
+        55.59,
+        56.7,
+        57.27,
+        57.84,
+        58.41,
+        58.99
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Creep Plus",
+      40,
+      [
+        70.18,
+        71.58,
+        72.3,
+        73.02,
+        73.74,
+        74.48
+      ]
+    ],
+    [
+      "Energéticos",
+      "Nutri Engorda Águas VM",
+      30,
+      [
+        58.05,
+        59.21,
+        59.8,
+        60.4,
+        60.99,
+        61.6
+      ]
+    ],
+    [
+      "Energéticos",
+      "Nutri Engorda Seca VM",
+      30,
+      [
+        58.47,
+        59.64,
+        60.24,
+        60.84,
+        61.43,
+        62.05
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Inicial",
+      40,
+      [
+        78.73,
+        80.3,
+        81.11,
+        81.92,
+        82.72,
+        83.55
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Crescimento",
+      40,
+      [
+        75.74,
+        77.25,
+        78.03,
+        78.81,
+        79.58,
+        80.38
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Final",
+      40,
+      [
+        73.08,
+        74.54,
+        75.29,
+        76.04,
+        76.79,
+        77.55
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Postura",
+      40,
+      [
+        74.48,
+        75.97,
+        76.73,
+        77.5,
+        78.26,
+        79.04
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Conc. Inicial",
+      40,
+      [
+        116.66,
+        118.99,
+        120.18,
+        121.38,
+        122.57,
+        123.8
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Conc. Final",
+      40,
+      [
+        103.47,
+        105.54,
+        106.59,
+        107.66,
+        108.72,
+        109.8
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Inicial",
+      40,
+      [
+        69.85,
+        71.25,
+        71.96,
+        72.68,
+        73.39,
+        74.13
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Crescimento",
+      40,
+      [
+        66.61,
+        67.94,
+        68.62,
+        69.31,
+        69.99,
+        70.69
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Terminação",
+      40,
+      [
+        64,
+        65.28,
+        65.93,
+        66.59,
+        67.24,
+        67.92
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Reprodução",
+      40,
+      [
+        66.66,
+        67.99,
+        68.67,
+        69.36,
+        70.04,
+        70.74
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Conc. Inicial",
+      40,
+      [
+        83.66,
+        85.33,
+        86.19,
+        87.05,
+        87.9,
+        88.78
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Conc. Terminação",
+      40,
+      [
+        78.59,
+        80.16,
+        80.96,
+        81.77,
+        82.57,
+        83.4
+      ]
+    ]
+  ],
+  "PRODM": [
+    [
+      "Mineral",
+      "Quali phos 40 engorda",
+      30,
+      [
+        99.3,
+        101.29,
+        102.3,
+        103.32,
+        104.33,
+        105.38
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 60 recria",
+      30,
+      [
+        124.68,
+        127.17,
+        128.45,
+        129.73,
+        131,
+        132.31
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 80 cria",
+      30,
+      [
+        150.91,
+        153.93,
+        155.47,
+        157.02,
+        158.56,
+        160.15
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 90 cria",
+      30,
+      [
+        166.06,
+        169.38,
+        171.08,
+        172.79,
+        174.48,
+        176.22
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Leite Vit",
+      30,
+      [
+        165.94,
+        169.26,
+        170.95,
+        172.66,
+        174.35,
+        176.1
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 130",
+      25,
+      [
+        184.53,
+        188.22,
+        190.1,
+        192,
+        193.89,
+        195.82
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 160",
+      25,
+      [
+        213.4,
+        217.67,
+        219.84,
+        222.04,
+        224.22,
+        226.46
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Equinos",
+      30,
+      [
+        130.88,
+        133.5,
+        134.83,
+        136.18,
+        137.52,
+        138.89
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Ovinos",
+      30,
+      [
+        123.13,
+        125.59,
+        126.85,
+        128.12,
+        129.37,
+        130.67
+      ]
+    ],
+    [
+      "Mineral Aditivado",
+      "Quali phos Engord +",
+      30,
+      [
+        148.92,
+        151.9,
+        153.42,
+        154.95,
+        156.47,
+        158.03
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Engorda",
+      30,
+      [
+        102.95,
+        105.01,
+        106.06,
+        107.12,
+        108.17,
+        109.25
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Recria",
+      30,
+      [
+        116.43,
+        118.76,
+        119.95,
+        121.15,
+        122.33,
+        123.56
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Cria",
+      30,
+      [
+        130.47,
+        133.08,
+        134.41,
+        135.75,
+        137.08,
+        138.46
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas",
+      30,
+      [
+        66.35,
+        67.68,
+        68.35,
+        69.04,
+        69.71,
+        70.41
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Leite",
+      30,
+      [
+        76.49,
+        78.02,
+        78.8,
+        79.59,
+        80.37,
+        81.17
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas Recria",
+      30,
+      [
+        76.91,
+        78.45,
+        79.23,
+        80.03,
+        80.81,
+        81.62
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas MC",
+      30,
+      [
+        61.72,
+        62.95,
+        63.58,
+        64.22,
+        64.85,
+        65.5
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Engord +",
+      30,
+      [
+        81.24,
+        82.86,
+        83.69,
+        84.53,
+        85.36,
+        86.21
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto 30 Seca",
+      30,
+      [
+        71.22,
+        72.64,
+        73.37,
+        74.1,
+        74.83,
+        75.58
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto 30 Seca Recria",
+      30,
+      [
+        82.22,
+        83.86,
+        84.7,
+        85.55,
+        86.39,
+        87.25
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Seca MC",
+      30,
+      [
+        63.91,
+        65.19,
+        65.84,
+        66.5,
+        67.15,
+        67.82
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Seca Vacada",
+      30,
+      [
+        69.03,
+        70.41,
+        71.11,
+        71.83,
+        72.53,
+        73.26
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf 3 RM",
+      30,
+      [
+        100.86,
+        102.88,
+        103.91,
+        104.95,
+        105.97,
+        107.03
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf Pasto",
+      30,
+      [
+        123.08,
+        125.54,
+        126.8,
+        128.06,
+        129.32,
+        130.61
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf Leite",
+      30,
+      [
+        170.27,
+        173.68,
+        175.41,
+        177.17,
+        178.9,
+        180.69
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali confina 10",
+      30,
+      [
+        128.63,
+        131.2,
+        132.51,
+        133.84,
+        135.15,
+        136.5
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf 4 pasto",
+      30,
+      [
+        118.47,
+        120.84,
+        122.05,
+        123.27,
+        124.48,
+        125.72
+      ]
+    ]
+  ],
+  "PROD": [
+    [
+      "Rações",
+      "Quali Engorda 160 RM",
+      40,
+      [
+        56.69,
+        57.82,
+        58.4,
+        58.99,
+        59.56,
+        60.16
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Engorda 180 RM",
+      40,
+      [
+        58.19,
+        59.35,
+        59.95,
+        60.55,
+        61.14,
+        61.75
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 200",
+      40,
+      [
+        66.32,
+        67.65,
+        68.32,
+        69.01,
+        69.68,
+        70.38
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 220",
+      40,
+      [
+        68.88,
+        70.26,
+        70.96,
+        71.67,
+        72.37,
+        73.1
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Leite 240",
+      40,
+      [
+        72.55,
+        74,
+        74.74,
+        75.49,
+        76.23,
+        76.99
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Creep PR",
+      40,
+      [
+        60.33,
+        61.54,
+        62.15,
+        62.77,
+        63.39,
+        64.02
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Equino PR",
+      40,
+      [
+        58.98,
+        60.16,
+        60.76,
+        61.37,
+        61.97,
+        62.59
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Ovino",
+      40,
+      [
+        55.59,
+        56.7,
+        57.27,
+        57.84,
+        58.41,
+        58.99
+      ]
+    ],
+    [
+      "Rações",
+      "Quali Creep Plus",
+      40,
+      [
+        70.18,
+        71.58,
+        72.3,
+        73.02,
+        73.74,
+        74.48
+      ]
+    ],
+    [
+      "Energéticos",
+      "Nutri Engorda Águas VM",
+      30,
+      [
+        58.05,
+        59.21,
+        59.8,
+        60.4,
+        60.99,
+        61.6
+      ]
+    ],
+    [
+      "Energéticos",
+      "Nutri Engorda Seca VM",
+      30,
+      [
+        58.47,
+        59.64,
+        60.24,
+        60.84,
+        61.43,
+        62.05
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Inicial",
+      40,
+      [
+        78.73,
+        80.3,
+        81.11,
+        81.92,
+        82.72,
+        83.55
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Crescimento",
+      40,
+      [
+        75.74,
+        77.25,
+        78.03,
+        78.81,
+        79.58,
+        80.38
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Final",
+      40,
+      [
+        73.08,
+        74.54,
+        75.29,
+        76.04,
+        76.79,
+        77.55
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Postura",
+      40,
+      [
+        74.48,
+        75.97,
+        76.73,
+        77.5,
+        78.26,
+        79.04
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Conc. Inicial",
+      40,
+      [
+        116.66,
+        118.99,
+        120.18,
+        121.38,
+        122.57,
+        123.8
+      ]
+    ],
+    [
+      "Aves",
+      "Quali Avi Conc. Final",
+      40,
+      [
+        103.47,
+        105.54,
+        106.59,
+        107.66,
+        108.72,
+        109.8
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Inicial",
+      40,
+      [
+        69.85,
+        71.25,
+        71.96,
+        72.68,
+        73.39,
+        74.13
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Crescimento",
+      40,
+      [
+        66.61,
+        67.94,
+        68.62,
+        69.31,
+        69.99,
+        70.69
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Terminação",
+      40,
+      [
+        64,
+        65.28,
+        65.93,
+        66.59,
+        67.24,
+        67.92
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Reprodução",
+      40,
+      [
+        66.66,
+        67.99,
+        68.67,
+        69.36,
+        70.04,
+        70.74
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Conc. Inicial",
+      40,
+      [
+        83.66,
+        85.33,
+        86.19,
+        87.05,
+        87.9,
+        88.78
+      ]
+    ],
+    [
+      "Suínos",
+      "Quali Sui Conc. Terminação",
+      40,
+      [
+        78.59,
+        80.16,
+        80.96,
+        81.77,
+        82.57,
+        83.4
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 40 engorda",
+      30,
+      [
+        99.3,
+        101.29,
+        102.3,
+        103.32,
+        104.33,
+        105.38
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 60 recria",
+      30,
+      [
+        124.68,
+        127.17,
+        128.45,
+        129.73,
+        131,
+        132.31
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 80 cria",
+      30,
+      [
+        150.91,
+        153.93,
+        155.47,
+        157.02,
+        158.56,
+        160.15
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 90 cria",
+      30,
+      [
+        166.06,
+        169.38,
+        171.08,
+        172.79,
+        174.48,
+        176.22
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Leite Vit",
+      30,
+      [
+        165.94,
+        169.26,
+        170.95,
+        172.66,
+        174.35,
+        176.1
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 130",
+      25,
+      [
+        184.53,
+        188.22,
+        190.1,
+        192,
+        193.89,
+        195.82
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos 160",
+      25,
+      [
+        213.4,
+        217.67,
+        219.84,
+        222.04,
+        224.22,
+        226.46
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Equinos",
+      30,
+      [
+        130.88,
+        133.5,
+        134.83,
+        136.18,
+        137.52,
+        138.89
+      ]
+    ],
+    [
+      "Mineral",
+      "Quali phos Ovinos",
+      30,
+      [
+        123.13,
+        125.59,
+        126.85,
+        128.12,
+        129.37,
+        130.67
+      ]
+    ],
+    [
+      "Mineral Aditivado",
+      "Quali phos Engord +",
+      30,
+      [
+        148.92,
+        151.9,
+        153.42,
+        154.95,
+        156.47,
+        158.03
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Engorda",
+      30,
+      [
+        102.95,
+        105.01,
+        106.06,
+        107.12,
+        108.17,
+        109.25
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Recria",
+      30,
+      [
+        116.43,
+        118.76,
+        119.95,
+        121.15,
+        122.33,
+        123.56
+      ]
+    ],
+    [
+      "Mineral Adensado",
+      "Adense Cria",
+      30,
+      [
+        130.47,
+        133.08,
+        134.41,
+        135.75,
+        137.08,
+        138.46
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas",
+      30,
+      [
+        66.35,
+        67.68,
+        68.35,
+        69.04,
+        69.71,
+        70.41
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Leite",
+      30,
+      [
+        76.49,
+        78.02,
+        78.8,
+        79.59,
+        80.37,
+        81.17
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas Recria",
+      30,
+      [
+        76.91,
+        78.45,
+        79.23,
+        80.03,
+        80.81,
+        81.62
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Águas MC",
+      30,
+      [
+        61.72,
+        62.95,
+        63.58,
+        64.22,
+        64.85,
+        65.5
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Engord +",
+      30,
+      [
+        81.24,
+        82.86,
+        83.69,
+        84.53,
+        85.36,
+        86.21
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto 30 Seca",
+      30,
+      [
+        71.22,
+        72.64,
+        73.37,
+        74.1,
+        74.83,
+        75.58
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto 30 Seca Recria",
+      30,
+      [
+        82.22,
+        83.86,
+        84.7,
+        85.55,
+        86.39,
+        87.25
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Seca MC",
+      30,
+      [
+        63.91,
+        65.19,
+        65.84,
+        66.5,
+        67.15,
+        67.82
+      ]
+    ],
+    [
+      "Proteinado (Nutri pasto)",
+      "Nutri pasto Seca Vacada",
+      30,
+      [
+        69.03,
+        70.41,
+        71.11,
+        71.83,
+        72.53,
+        73.26
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf 3 RM",
+      30,
+      [
+        100.86,
+        102.88,
+        103.91,
+        104.95,
+        105.97,
+        107.03
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf Pasto",
+      30,
+      [
+        123.08,
+        125.54,
+        126.8,
+        128.06,
+        129.32,
+        130.61
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf Leite",
+      30,
+      [
+        170.27,
+        173.68,
+        175.41,
+        177.17,
+        178.9,
+        180.69
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali confina 10",
+      30,
+      [
+        128.63,
+        131.2,
+        132.51,
+        133.84,
+        135.15,
+        136.5
+      ]
+    ],
+    [
+      "Núcleos e Concentrados",
+      "Quali conf 4 pasto",
+      30,
+      [
+        118.47,
+        120.84,
+        122.05,
+        123.27,
+        124.48,
+        125.72
+      ]
+    ]
+  ],
+  "FJUARA": [
+    [
+      "Até 25 km",
+      1.6,
+      1.9,
+      2.5,
+      25
+    ],
+    [
+      "26 a 45 km",
+      2.45,
+      2.95,
+      3.9,
+      38
+    ],
+    [
+      "46 a 70 km",
+      3.5,
+      4.2,
+      5.6,
+      56
+    ],
+    [
+      "71 a 100 km",
+      3.75,
+      4.5,
+      6,
+      85
+    ],
+    [
+      "101 a 150 km",
+      4.13,
+      4.95,
+      6.6,
+      125
+    ],
+    [
+      "151 a 190 km",
+      5,
+      6,
+      8,
+      165
+    ]
+  ],
+  "FREG": [
+    [
+      "Brasnorte até 35 km",
+      210,
+      185
+    ],
+    [
+      "Brasnorte 36 a 60 km",
+      228,
+      196
+    ],
+    [
+      "Brasnorte 61 a 90 km",
+      255,
+      224
+    ],
+    [
+      "Aripuanã (mín. 10 t)",
+      null,
+      446
+    ],
+    [
+      "Cotriguaçu (mín. 10 t)",
+      null,
+      446
+    ],
+    [
+      "Juína até 35 km",
+      237,
+      182
+    ],
+    [
+      "Juína 36 a 80 km",
+      255,
+      202
+    ],
+    [
+      "Juína 81 a 110 km",
+      283,
+      237
+    ],
+    [
+      "Juína 111 a 140 km",
+      328,
+      269
+    ],
+    [
+      "Juruena (mín. 9 t)",
+      null,
+      283
+    ]
+  ],
+  "POLICY": [
+    [
+      "1. Objetivo",
+      "Regras comerciais das vendas diretas da fábrica Qualinutri: condições de pagamento, descontos por linha, prazos de produção e entrega, retirada, crédito, frete e logística. Objetivo: padronizar o atendimento e assegurar rentabilidade e previsibilidade."
+    ],
+    [
+      "2. Abrangência",
+      "Toda a equipe comercial, administrativa, de produção e de logística, e todas as vendas diretas da fábrica. Cumprimento obrigatório."
+    ],
+    [
+      "3. Tabela de preços",
+      "Preços conforme as Tabelas vigentes — Rações e Mineral/Proteinado/Núcleos (a partir de 03/09/2026), em R$ por saca. O preço “à vista” é a base para descontos e antecipações. Prevalece a tabela vigente na data do pedido."
+    ],
+    [
+      "4. Condições de pagamento",
+      "À vista antecipado: +1,5% sobre o preço à vista. Havendo estoque, a retirada pode ser feita; não havendo, produção em até 15 dias. À vista: até 15 dias. A prazo: 30; 30/60 ou 45; 30/60/90 ou 60; 30/60/90/120 ou 75; 30/60/90/120/150 ou 90 dias — conforme a tabela."
+    ],
+    [
+      "5. Descontos por linha",
+      "Ver a tabela de descontos. Aplicado sobre o preço de tabela, independente do pagamento. Frete e descarga sem desconto. Promoções podem mudar a qualquer momento. Acúmulo do 1,5% com o desconto de linha: só com aprovação do Gestor Comercial e da Diretoria."
+    ],
+    [
+      "6. Política de crédito",
+      "<span class='todo'>A definir.</span> Sem política de crédito oficializada. Novos clientes: à vista/antecipado até formar histórico; prazo caso a caso. A definir: critérios/limites, documentação e alçadas."
+    ],
+    [
+      "7. Pedido mínimo",
+      "O pedido mínimo é de <b>1 tonelada</b>."
+    ],
+    [
+      "8. Pedidos e confirmação",
+      "Pedidos por telefone e WhatsApp. Pedido por telefone confirmado por escrito no WhatsApp. Faturamento após confirmação e validação de cadastro."
+    ],
+    [
+      "9. Produção e prazos de entrega",
+      "Em estoque: expedição conforme programação. Sem estoque: produção em até 15 dias. Prazos informados na confirmação."
+    ],
+    [
+      "10. Retirada de produtos (compra de retirada)",
+      "Na compra de retirada, o cliente tem até 6 meses para retirar o produto na fábrica. Após os 6 meses, para manter armazenado, cobra-se <b>R$ 1,00 por saco ao mês</b>."
+    ],
+    [
+      "11. Frete e logística",
+      "Fácil acesso: freteiro terceirizado. Difícil acesso: frota própria. Os valores seguem as Tabelas de Frete vigentes (Juara e Regional — 06/05/2026), na aba “Frete”. Frete e descarga sem desconto. Carga fechada = uma única entrega (10/18/28 t); fracionada = mais de uma entrega. Descarga por conta do cliente; produto descarregado acresce R$ 40,00/tonelada. Entrega mínima 1.000 kg por cliente. Conversão: ração = 25 sacos/t; mineral/proteico/núcleos = 33,33 sacos/t; concentrado 130/160 = 40 sacos/t."
+    ],
+    [
+      "12. Devoluções e trocas",
+      "Solicitações com nota fiscal; avarias registradas no recebimento. <span class='todo'>A definir:</span> prazo para solicitação."
+    ],
+    [
+      "13. Responsabilidades",
+      "Gestor Comercial/Diretoria: aprovações, alçadas e casos omissos. Comercial: cadastro, pedidos e aplicação de tabela/descontos. Cibelly: estoque e custo de frete/margens. Rogério: compras e manutenção da frota. Produção: prazo de 15 dias e controle das retiradas."
+    ],
+    [
+      "14. Vigência e revisão",
+      "Em vigor a partir da aprovação, por prazo indeterminado. Revisão a cada mudança de tabela/condições ou, no mínimo, anual. Aprovada pelo Gestor Comercial e pela Diretoria."
+    ]
+  ]
+}
