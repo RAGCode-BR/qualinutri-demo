@@ -6,7 +6,7 @@ type MobileNavProps = { activeTab: TabId; onChange: (tab: TabId) => void; onOpen
 
 const shortcuts: Array<{ id: TabId; label: string; icon: typeof Menu }> = [
   { id: "dashboard", label: "Início", icon: LayoutDashboard },
-  { id: "calculator", label: "Calcular", icon: Calculator },
+  { id: "calculator", label: "Orçar", icon: Calculator },
   { id: "quotes", label: "Orçamentos", icon: FileText },
   { id: "checklist", label: "Checklist", icon: ClipboardCheck },
 ];

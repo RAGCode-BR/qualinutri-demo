@@ -75,7 +75,7 @@ export function QuoteRowOpener() {
     if (!item) return null;
     const editable = !!rowButton(item.quote_number, "Editar");
     const actions: RowAction[] = [
-      ...(editable ? [{ id: "edit", label: "Editar orçamento", hint: "Abre na Calculadora", icon: <PencilLine size={16} aria-hidden="true" />, primary: true, onSelect: () => run(item.quote_number, "Editar") }] : []),
+      ...(editable ? [{ id: "edit", label: "Editar orçamento", hint: "Abre o orçamento para alterar", icon: <PencilLine size={16} aria-hidden="true" />, primary: true, onSelect: () => run(item.quote_number, "Editar") }] : []),
       { id: "pdf", label: "Ver PDF", hint: "Visualizar na tela, baixar ou imprimir", icon: <FileText size={16} aria-hidden="true" />, primary: !editable, onSelect: () => setOpenId(item.id) },
       ...(rowButton(item.quote_number, "Duplicar") ? [{ id: "dup", label: "Duplicar", hint: "Novo orçamento a partir deste", icon: <Copy size={16} aria-hidden="true" />, onSelect: () => run(item.quote_number, "Duplicar") }] : []),
     ];

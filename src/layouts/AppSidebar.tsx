@@ -17,7 +17,7 @@ export const navGroups: NavGroup[] = [
   {
     label: "Comercial",
     items: [
-      { id: "calculator", label: "Calculadora", hint: "Monte pedidos com o preço da política", icon: Calculator },
+      { id: "calculator", label: "Novo orçamento", hint: "Monte o orçamento com o preço da política", icon: Calculator },
       { id: "quotes", label: "Orçamentos", hint: "Acompanhe, aprove e gere o PDF", icon: FileText },
       { id: "customers", label: "Clientes", hint: "Cadastro, propriedades e histórico", icon: Users },
       { id: "credit", label: "Crédito e cliente 360°", hint: "Score automático, histórico e documentos", icon: ShieldCheck },
