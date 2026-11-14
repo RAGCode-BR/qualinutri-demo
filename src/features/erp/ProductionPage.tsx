@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Factory, FlaskConical, Lock, PackageCheck, Play, Plus, Warehouse } from "lucide-react";
 import { useDemoTables } from "../../demo/app/useDemoTables";
-import { advanceOrder, createOrder } from "../../demo/erp/service";
+import { advanceOrder, createOrder, receiveMaterial } from "../../demo/erp/service";
 import { isoDate, today } from "../../demo/store/ids";
 import { Chip, Stat, Tabs, dateBr, money } from "./shared";
 
@@ -31,6 +31,7 @@ function Orders() {
   const [bags, setBags] = useState(200);
   const orders = tables.erp.orders;
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const columns = (["planejada", "em_producao", "concluida"] as const).map((status) => ({ status, list: orders.filter((order) => order.status === status).slice(0, status === "concluida" ? 8 : 20) }));
   const producedToday = orders.filter((order) => order.status === "concluida" && order.date === todayKey).reduce((sum, order) => sum + order.bags, 0);
   return (
@@ -42,7 +43,13 @@ function Orders() {
         <Stat index={3} label="Toneladas no mês" value={orders.filter((order) => order.status === "concluida" && order.date.slice(0, 7) === todayKey.slice(0, 7)).reduce((sum, order) => sum + (order.bags * order.bagKg) / 1000, 0)} format="tons" />
       </section>
       {error && <p role="alert" className="auth-error">{error}</p>}
-      <form className="dash-card erp-inline-form" onSubmit={(event) => { event.preventDefault(); const item = tables.catalog.products.find((row) => row.name === product); void createOrder(product, bags, item?.weightKg ?? 40); }}>
+      {notice && <p role="status" className="erp-notice">{notice}</p>}
+      <form className="dash-card erp-inline-form" onSubmit={(event) => {
+        event.preventDefault();
+        const item = tables.catalog.products.find((row) => row.name === product);
+        setError(""); setNotice("");
+        void createOrder(product, bags, item?.weightKg ?? 40).then(() => setNotice(`Ordem criada: ${bags} sacas de ${product}. Clique em “Iniciar” quando a produção começar.`)).catch((reason: Error) => setError(reason.message));
+      }}>
         <Plus size={18} aria-hidden="true" />
         <select className="ck-target-filter" value={product} onChange={(event) => setProduct(event.target.value)} aria-label="Produto">{tables.catalog.products.map((item) => <option key={item.name}>{item.name}</option>)}</select>
         <input type="number" min={10} step={10} value={bags} onChange={(event) => setBags(Number(event.target.value))} aria-label="Sacas" />
@@ -57,7 +64,7 @@ function Orders() {
               <article key={order.id} className="kpi-board-card is-static" style={{ animationDelay: `${index * 35}ms` }}>
                 <strong>OP {order.number} · {order.product}</strong>
                 <small>{order.bags} sacas de {order.bagKg} kg · {dateBr(order.date)} · {order.operator}</small>
-                {order.status !== "concluida" && <button type="button" className="link-button" onClick={() => { setError(""); void advanceOrder(order.id).catch((reason: Error) => setError(reason.message)); }}><Play size={13} aria-hidden="true" /> {order.status === "planejada" ? "Iniciar" : "Concluir e baixar insumos"}</button>}
+                {order.status !== "concluida" && <button type="button" className="link-button" onClick={() => { setError(""); setNotice(""); void advanceOrder(order.id).then((next) => setNotice(next === "concluida" ? `OP ${order.number} concluída: insumos baixados e ${order.bags} sacas no estoque de acabado.` : `OP ${order.number} em produção.`)).catch((reason: Error) => setError(reason.message)); }}><Play size={13} aria-hidden="true" /> {order.status === "planejada" ? "Iniciar" : "Concluir e baixar insumos"}</button>}
               </article>
             ))}
           </div>
@@ -70,7 +77,31 @@ function Orders() {
 function Stock() {
   const tables = useDemoTables();
   const max = Math.max(...tables.erp.materials.map((item) => Math.max(item.stockKg, item.minKg)));
+  const [materialId, setMaterialId] = useState(tables.erp.materials[0]?.id ?? "");
+  const [kg, setKg] = useState(10000);
+  const [price, setPrice] = useState<number | "">("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const chosen = tables.erp.materials.find((item) => item.id === materialId);
   return (
+    <div className="erp-grid">
+    {error && <p role="alert" className="auth-error">{error}</p>}
+    {notice && <p role="status" className="erp-notice">{notice}</p>}
+    <form className="dash-card erp-inline-form" onSubmit={(event) => {
+      event.preventDefault();
+      setError(""); setNotice("");
+      void receiveMaterial(materialId, kg, price === "" ? undefined : price)
+        .then(() => setNotice(`Entrada registrada: ${(kg / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} t de ${chosen?.name ?? "matéria-prima"}.`))
+        .catch((reason: Error) => setError(reason.message));
+    }}>
+      <Warehouse size={18} aria-hidden="true" />
+      <select className="ck-target-filter" value={materialId} onChange={(event) => setMaterialId(event.target.value)} aria-label="Matéria-prima">{tables.erp.materials.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+      <input type="number" min={1} step="any" value={kg} onChange={(event) => setKg(Number(event.target.value))} aria-label="Quantidade recebida (kg)" />
+      <span className="muted">kg a</span>
+      <input type="number" min={0} step="0.01" value={price} placeholder={chosen ? chosen.pricePerKg.toLocaleString("pt-BR") : "R$/kg"} onChange={(event) => setPrice(event.target.value === "" ? "" : Number(event.target.value))} aria-label="Preço por kg (opcional)" />
+      <span className="muted">R$/kg</span>
+      <button type="submit" className="primary-button compact-button">Registrar entrada</button>
+    </form>
     <div className="dash-columns">
       <section className="dash-card">
         <header className="dash-card-head"><h2><Warehouse size={16} aria-hidden="true" /> Matéria-prima</h2></header>
@@ -90,6 +121,7 @@ function Stock() {
           <tbody>{tables.erp.finished.map((item) => <tr key={item.product}><td>{item.product}<small>{item.location}</small></td><td className="is-number">{item.bags}</td><td className="is-number">{item.reserved}</td><td className="is-number"><strong className={item.bags - item.reserved <= 0 ? "erp-error" : undefined}>{item.bags - item.reserved}</strong></td></tr>)}</tbody>
         </table>
       </section>
+    </div>
     </div>
   );
 }

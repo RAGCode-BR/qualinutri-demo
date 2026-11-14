@@ -3137,6 +3137,93 @@
     border-radius: 12px;
   }
 
+  .policy-edit {
+    display: grid;
+    gap: 10px;
+  }
+
+  .policy-edit textarea {
+    width: 100%;
+    font: inherit;
+  }
+
+  .policy-pending {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .policy-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .policy-edit-button {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .policy-print {
+    margin-top: 12px;
+  }
+
+  .term-sim-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .term-sim-parcel {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .ck-repair-offer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .ck-repair-offer > span {
+    display: inline-flex;
+    flex: 1 1 240px;
+    gap: 6px;
+    align-items: center;
+    font-weight: 700;
+  }
+
+  .fleet-check-card {
+    cursor: default;
+  }
+
+  .fleet-check-card .ck-status {
+    justify-self: start;
+  }
+
+  .fleet-check-card .erp-actions-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ck-check.is-open {
+    box-shadow: inset 3px 0 0 var(--warning-ink);
+  }
+
+  .ck-failed {
+    color: var(--danger);
+  }
+
+  .ck-all-ok {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
   .ck-toggle {
     display: inline-flex;
     padding: 3px;
@@ -7930,4 +8017,21 @@
 
 @media screen {
   .nutrition-page .nutrition-bound > label.field { margin: 0; }
+}
+
+/* Financeiro · contas a pagar e a receber */
+.fin-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 4px; }
+.fin-bank { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.fin-list.title-list.is-readonly li > div { grid-template-columns: minmax(0, 1fr) auto auto minmax(92px, auto); }
+.fin-list li.is-open > div, .fin-list li.is-paid > div { background: #fff; }
+.fin-actions { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.fin-done { display: inline-flex; justify-content: flex-end; color: var(--brand-600); }
+.fin-form-card { grid-column: 1 / -1; }
+.fin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 8px; }
+.fin-form .fin-wide { grid-column: span 2; }
+.fin-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+@media (max-width: 640px) {
+  .fin-form .fin-wide { grid-column: 1 / -1; }
+  .fin-list.title-list.is-readonly li > div { grid-template-columns: minmax(0, 1fr) auto; }
+  .fin-list .fin-actions, .fin-list .fin-done { grid-column: 1 / -1; justify-content: flex-start; }
 }

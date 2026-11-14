@@ -17,16 +17,18 @@ type RecordDialogProps = {
   record?: ChecklistRecord;
   presetTarget?: string | null;
   readOnly?: boolean;
+  /** Chamado depois de gravar (antes de fechar), com o registro salvo. */
+  onSaved?: (record: ChecklistRecord) => void;
   onClose: () => void;
 };
 
-export function RecordDialog({ tabId, record, presetTarget, readOnly = false, onClose }: RecordDialogProps) {
+export function RecordDialog({ tabId, record, presetTarget, readOnly = false, onSaved, onClose }: RecordDialogProps) {
   const tab = TAB_BY_ID[tabId];
   const tables = useDemoTables();
   const ref = useRef<HTMLDialogElement>(null);
   const [targetId, setTargetId] = useState<string>(record?.targetId ?? presetTarget ?? "");
   const [values, setValues] = useState<Record<string, FieldValue>>(() => record?.values ?? {});
-  const [checks, setChecks] = useState<Record<string, boolean>>(() => record?.checks ?? Object.fromEntries(tab.checks.map((item) => [item, true])));
+  const [checks, setChecks] = useState<Record<string, boolean>>(() => record?.checks ?? {});
   const [stage, setStage] = useState<string | null>(record?.stage ?? tab.stages?.[0] ?? null);
   const [notes, setNotes] = useState(record?.notes ?? "");
   const [evidence, setEvidence] = useState<EvidenceRef[]>(record?.evidence ?? []);
@@ -41,7 +43,11 @@ export function RecordDialog({ tabId, record, presetTarget, readOnly = false, on
   }, []);
 
   const targets = targetsFor(tabId, tables);
-  const live = evaluateStatus(tabId, { checks, values, stage }, tables, today());
+  const answered = tab.checks.filter((item) => typeof checks[item] === "boolean").length;
+  const failed = tab.checks.filter((item) => checks[item] === false);
+  // Enquanto a conferência não termina, o registro ainda não está conforme.
+  const evaluated = evaluateStatus(tabId, { checks, values, stage }, tables, today());
+  const live = evaluated === "conforme" && answered < tab.checks.length ? "pendente" : evaluated;
   const problems = outOfStandard(tabId, values, tables);
   const cost = recordCost(tabId, values);
 
@@ -77,7 +83,8 @@ export function RecordDialog({ tabId, record, presetTarget, readOnly = false, on
     setBusy(true);
     setError("");
     try {
-      await saveRecord({ id: record?.id, tab: tabId, targetId: targetId || null, checks, values, notes, evidence, stage });
+      const saved = await saveRecord({ id: record?.id, tab: tabId, targetId: targetId || null, checks, values, notes, evidence, stage });
+      onSaved?.(saved);
       onClose();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar.");
@@ -165,9 +172,12 @@ export function RecordDialog({ tabId, record, presetTarget, readOnly = false, on
 
           {tab.checks.length > 0 && (
             <fieldset className="ck-checks">
-              <legend>Checklist</legend>
+              <legend>Checklist · {answered} de {tab.checks.length} conferidos{failed.length > 0 && <span className="ck-failed"> · {failed.length} reprovado{failed.length > 1 ? "s" : ""}</span>}</legend>
+              {!readOnly && answered < tab.checks.length && (
+                <button type="button" className="link-button ck-all-ok" onClick={() => setChecks((current) => ({ ...Object.fromEntries(tab.checks.map((item) => [item, true])), ...current }))}>Marcar os que faltam como OK</button>
+              )}
               {tab.checks.map((item) => (
-                <div className="ck-check" key={item}>
+                <div className={`ck-check${checks[item] === undefined ? " is-open" : ""}`} key={item}>
                   <span>{item}</span>
                   <div className="ck-toggle">
                     <button type="button" disabled={readOnly} aria-pressed={checks[item] === true} className="is-ok" onClick={() => setChecks((current) => ({ ...current, [item]: true }))}>OK</button>

@@ -1,3 +1,5 @@
+import type { EvidenceRef } from "../checklist/types";
+
 export type BankId = "sicoob" | "itau";
 
 export type Bank = {
@@ -45,7 +47,16 @@ export type FleetRequest = {
   status: "aguardando" | "aprovado" | "recusado" | "concluido";
   decidedBy: string | null;
   context: string | null;
+  /** Fotos do defeito e orçamentos das oficinas anexados no pedido. */
+  evidence?: EvidenceRef[];
+  /** Conferência (checklist) que originou o pedido, quando houver. */
+  checkRecordId?: string | null;
 };
+
+/** Baixa de um título a receber (boleto, Pix ou depósito identificado). */
+export type Receipt = { key: string; paidAt: string; bank: BankId; amount: number; by: string };
+/** Conta a receber lançada à mão, fora de um orçamento (ex.: venda de sucata, aluguel, reembolso). */
+export type ExtraReceivable = { id: string; customer: string; description: string; dueDate: string; amount: number; createdAt: string; createdBy: string };
 
 export type Trip = { id: string; vehicle: string; date: string; customer: string; city: string; km: number; tons: number; freightCharged: number; fuel: number; tolls: number; driver: string; incident: string | null };
 
@@ -99,6 +110,10 @@ export type ErpTables = {
   finished: FinishedStock[];
   approvals: Approval[];
   chat: ChatMessage[];
+  /** Baixas manuais de títulos a receber (dados antigos não têm). */
+  receipts?: Receipt[];
+  /** Contas a receber avulsas (dados antigos não têm). */
+  extraReceivables?: ExtraReceivable[];
   /** Conversas (criadas na primeira leitura de dados antigos, ver demo/chat/seed). */
   threads?: ChatThread[];
   /** Última leitura de cada conversa (data e hora). */

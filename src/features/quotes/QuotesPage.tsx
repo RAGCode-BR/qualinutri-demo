@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { FilePlus2 } from "lucide-react";
+import { useNavigate } from "../../app/NavigationContext";
 import { useAuth } from "../../app/AuthProvider";
 import { useQuoteEditing } from "../../app/QuoteEditingContext";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -40,6 +42,8 @@ type Confirming = { kind: "approve" | "cancel"; quote: SavedQuoteSummary } | nul
 export function QuotesPage() {
   const { profile } = useAuth();
   const { openQuoteForEditing } = useQuoteEditing();
+  const navigate = useNavigate();
+  const canCreate = canAccessTab("calculator", profile);
   const isAdmin = profile?.role === "administrador";
   // O andamento da expedição só aparece para quem vê a página Cargas.
   const showShipping = canAccessTab("loads", profile);
@@ -194,8 +198,11 @@ export function QuotesPage() {
 
     <Panel
       title={hasFilters ? "Orçamentos encontrados" : "Orçamentos salvos"}
-      description={hasFilters ? "Até 50 orçamentos mais recentes que atendem à busca." : "Os 50 mais recentes. Para criar um novo, use a Calculadora."}
-      actions={!loading && !loadError && <span className="count-badge">{quotes.length} {quotes.length === 1 ? "orçamento" : "orçamentos"}</span>}
+      description={hasFilters ? "Até 50 orçamentos mais recentes que atendem à busca." : "Os 50 mais recentes. Use “Novo orçamento” para montar outro."}
+      actions={<>
+        {!loading && !loadError && <span className="count-badge">{quotes.length} {quotes.length === 1 ? "orçamento" : "orçamentos"}</span>}
+        {canCreate && <button type="button" className="primary-button compact-button" onClick={() => navigate("calculator")}><FilePlus2 size={15} aria-hidden="true" />&nbsp;Novo orçamento</button>}
+      </>}
       flush
     >
       {loadError ? (

@@ -30,7 +30,7 @@ const receivable: ReportDef = {
     const age = (item: (typeof all)[number]) => daysBetween(item.dueDate, todayKey);
     const buckets: [string, (days: number) => boolean][] = [["A vencer", (d) => d <= 0], ["1 a 30 dias", (d) => d >= 1 && d <= 30], ["31 a 60 dias", (d) => d > 30 && d <= 60], ["61 a 90 dias", (d) => d > 60 && d <= 90], ["Mais de 90 dias", (d) => d > 90]];
     const label = { pago: "Pago", vencido: "Vencido", a_vencer: "A vencer" } as const;
-    const lateTable = { title: "Parcelas vencidas", columns: [{ key: "cliente", label: "Cliente" }, { key: "parcela", label: "Parcela" }, { key: "vencimento", label: "Vencimento", format: "date" as const }, { key: "dias", label: "Atraso", format: "days" as const }, { key: "valor", label: "Valor", format: "currency" as const }], rows: late.map((item) => ({ cliente: item.customer, parcela: `#${item.quoteNumber} ${item.number}/${item.of}`, vencimento: item.dueDate, dias: age(item), valor: item.amount, _drill: toQuote(item.quoteId) })) };
+    const lateTable = { title: "Parcelas vencidas", columns: [{ key: "cliente", label: "Cliente" }, { key: "parcela", label: "Parcela" }, { key: "vencimento", label: "Vencimento", format: "date" as const }, { key: "dias", label: "Atraso", format: "days" as const }, { key: "valor", label: "Valor", format: "currency" as const }], rows: late.map((item) => ({ cliente: item.customer, parcela: item.description ?? `#${item.quoteNumber} ${item.number}/${item.of}`, vencimento: item.dueDate, dias: age(item), valor: item.amount, _drill: item.description ? undefined : toQuote(item.quoteId) })) };
     return {
       kpis: [
         { id: "open", label: "A receber (em aberto)", value: round2(sum(open, (item) => item.amount)), format: "currency" },
@@ -47,7 +47,7 @@ const receivable: ReportDef = {
       table: {
         title: "Parcelas",
         columns: [{ key: "cliente", label: "Cliente" }, { key: "pedido", label: "Pedido" }, { key: "parcela", label: "Parcela" }, { key: "vencimento", label: "Vencimento", format: "date" }, { key: "valor", label: "Valor", format: "currency" }, { key: "situacao", label: "Situação" }, { key: "dias", label: "Atraso", format: "days" }],
-        rows: [...list].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((item) => ({ cliente: item.customer, pedido: `#${item.quoteNumber}`, parcela: `${item.number}/${item.of}`, vencimento: item.dueDate, valor: item.amount, situacao: label[state(item)], dias: state(item) === "vencido" ? age(item) : 0, _drill: toQuote(item.quoteId) })),
+        rows: [...list].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((item) => ({ cliente: item.customer, pedido: item.description ?? `#${item.quoteNumber}`, parcela: `${item.number}/${item.of}`, vencimento: item.dueDate, valor: item.amount, situacao: label[state(item)], dias: state(item) === "vencido" ? age(item) : 0, _drill: item.description ? undefined : toQuote(item.quoteId) })),
         total: { cliente: `${list.length} parcelas`, valor: round2(sum(list, (item) => item.amount)) },
       },
     };

@@ -1,6 +1,6 @@
 import type { DemoTables, Row } from "../store/types";
 import { addDays, isoDate } from "../store/ids";
-import { openPayables, receivables } from "./finance";
+import { openPayables, receivables, titleRef } from "./finance";
 import type { TabId } from "../../layouts/AppSidebar";
 
 export type Period = { from: string; to: string };
@@ -142,7 +142,7 @@ export function dashboardKpis(tables: DemoTables, period: Period, today: Date): 
   const newCustomers = tables.customers.filter((customer) => within(customer.created_at, period));
 
   const overdueRows = [
-    ...lateReceivables.map((item) => ({ type: "A receber", who: item.customer, ref: `#${item.quoteNumber} · ${item.number}/${item.of}`, date: item.dueDate, total: item.amount })),
+    ...lateReceivables.map((item) => ({ type: "A receber", who: item.customer, ref: titleRef(item), date: item.dueDate, total: item.amount })),
     ...latePayables.map((item) => ({ type: "A pagar", who: item.supplier, ref: item.description, date: item.dueDate, total: item.amount })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
@@ -183,7 +183,7 @@ export function dashboardKpis(tables: DemoTables, period: Period, today: Date): 
       selection: {
         title: "Parcelas a receber",
         columns: [{ key: "customer", label: "Cliente", format: "text" }, { key: "ref", label: "Orçamento", format: "text" }, { key: "date", label: "Vencimento", format: "date" }, { key: "total", label: "Valor", format: "currency" }],
-        rows: toReceive.map((item) => ({ id: item.quoteId, customer: item.customer, ref: `#${item.quoteNumber} · ${item.number}/${item.of}`, date: item.dueDate, total: item.amount })),
+        rows: toReceive.map((item) => ({ id: item.quoteId, customer: item.customer, ref: titleRef(item), date: item.dueDate, total: item.amount })),
       },
     },
     {
@@ -271,7 +271,7 @@ export function weekSelection(tables: DemoTables, today: Date, weekIndex: number
   const from = isoDate(addDays(today, weekIndex * 7));
   const to = isoDate(addDays(today, weekIndex * 7 + 6));
   const incoming = receivables(tables, today).filter((item) => !item.paidAt && item.dueDate >= from && item.dueDate <= to)
-    .map((item) => ({ id: `${item.quoteId}-${item.number}`, type: "Entrada", who: item.customer, ref: `#${item.quoteNumber} · ${item.number}/${item.of}`, date: item.dueDate, total: item.amount }));
+    .map((item) => ({ id: `${item.quoteId}-${item.number}`, type: "Entrada", who: item.customer, ref: titleRef(item), date: item.dueDate, total: item.amount }));
   const outgoing = openPayables(tables).filter((item) => item.dueDate >= from && item.dueDate <= to)
     .map((item) => ({ id: item.id, type: "Saída", who: item.supplier, ref: item.description, date: item.dueDate, total: -item.amount }));
   return {

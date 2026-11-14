@@ -9,7 +9,8 @@ export type ChecklistTabId =
   | "results"
   | "production"
   | "pests"
-  | "cleaning";
+  | "cleaning"
+  | "fleetCheck";
 
 /** conforme = feito e dentro do padrão; pendente = aberto/aguardando; nao_conforme = fora do padrão. */
 export type RecordStatus = "conforme" | "pendente" | "nao_conforme";

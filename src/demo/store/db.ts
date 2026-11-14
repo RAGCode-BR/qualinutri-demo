@@ -5,7 +5,7 @@ import { ensureChat } from "../chat/seed";
 
 export const STORAGE_KEY = "qualinutri-demo:v1";
 /** Aumentar quando o formato do seed mudar: dados antigos são descartados. */
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 type Stored = { version: number; seededOn: string; tables: DemoTables };
 

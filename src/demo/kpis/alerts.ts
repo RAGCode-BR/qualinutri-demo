@@ -13,7 +13,7 @@ export function demoAlerts(tables: DemoTables, today: Date): DemoAlert[] {
   const date = (key: string) => key.split("-").reverse().join("/");
   const alerts: DemoAlert[] = [];
   for (const item of receivables(tables, today).filter((row) => !row.paidAt && row.dueDate < todayKey)) {
-    alerts.push({ id: `r-${item.quoteId}-${item.number}`, level: "high", title: `Parcela vencida · ${item.customer}`, detail: `Orçamento #${item.quoteNumber} (${item.number}/${item.of}) · ${fmt(item.amount)} · venceu em ${date(item.dueDate)}`, tab: "quotes" });
+    alerts.push({ id: `r-${item.quoteId}-${item.number}`, level: "high", title: `Parcela vencida · ${item.customer}`, detail: `${item.description ? item.description : `Orçamento #${item.quoteNumber} (${item.number}/${item.of})`} · ${fmt(item.amount)} · venceu em ${date(item.dueDate)}`, tab: "quotes" });
   }
   for (const item of openPayables(tables).filter((row) => row.dueDate < todayKey)) {
     alerts.push({ id: `p-${item.id}`, level: "high", title: `Conta a pagar vencida · ${item.supplier}`, detail: `${item.description} · ${fmt(item.amount)} · venceu em ${date(item.dueDate)}`, tab: "dashboard" });

@@ -33,6 +33,8 @@ export async function saveRecord(input: RecordInput): Promise<ChecklistRecord> {
   requireWriter();
   const tab = TAB_BY_ID[input.tab];
   if (tab.target && !input.targetId) throw new ChecklistError(`Escolha o ${tab.targetLabel?.toLowerCase() ?? "item"}.`);
+  const unanswered = tab.checks.filter((item) => typeof input.checks[item] !== "boolean");
+  if (unanswered.length) throw new ChecklistError(`Confira todos os itens do checklist: ${unanswered.length === 1 ? `falta “${unanswered[0]}”` : `faltam ${unanswered.length} itens`}.`);
   for (const field of tab.fields) {
     const value = input.values[field.key];
     if (field.required && (value === null || value === undefined || value === "")) throw new ChecklistError(`Preencha “${field.label}”.`);

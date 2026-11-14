@@ -16,12 +16,17 @@ export type DemoUser = UserProfile & { createdAt: string };
 export type Payable = {
   id: string;
   supplier: string;
-  category: "Matéria-prima" | "Manutenção da frota" | "Frete" | "Serviços" | "Energia";
+  category: PayableCategory;
   description: string;
   dueDate: string;
   amount: number;
   paidAt: string | null;
+  /** Conta de onde saiu o pagamento (quando pago pelo sistema). */
+  bank?: "sicoob" | "itau" | null;
 };
+
+export const PAYABLE_CATEGORIES = ["Matéria-prima", "Manutenção da frota", "Frete", "Serviços", "Energia", "Impostos", "Folha", "Outros"] as const;
+export type PayableCategory = (typeof PAYABLE_CATEGORIES)[number];
 
 export type CatalogImport = { id: string; appliedAt: string; fileName: string; kind: string; changes: number; appliedBy: string };
 

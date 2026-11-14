@@ -1,5 +1,5 @@
 import {
-  Beaker, Bug, ClipboardList, FlaskConical, HardHat, PackageCheck, Route, ShieldAlert, Sparkles, TestTubes, Wrench, type LucideIcon,
+  Beaker, ClipboardCheck, Bug, ClipboardList, FlaskConical, HardHat, PackageCheck, Route, ShieldAlert, Sparkles, TestTubes, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { ChecklistTabId } from "./types";
 
@@ -216,6 +216,19 @@ const CHECKLIST_TABS_ALL: TabDef[] = [
       { key: "mtr", label: "Nº do MTR", type: "text" },
     ],
     rule: "Etapa da limpeza não feita ou resíduo sem destino.",
+  },
+  {
+    id: "fleetCheck", label: "Conferência de Frota", short: "Frota", icon: ClipboardCheck,
+    description: "Conferência do veículo na saída e no retorno: item por item, com km, motorista e fotos.",
+    target: "vehicle", targetLabel: "Veículo", frequencyDays: 7,
+    checks: ["Pneus (calibragem e desgaste)", "Freios", "Luzes, setas e faróis", "Óleo e água no nível", "Sem vazamentos", "Extintor e triângulo", "Documentos (CRLV, ANTT)", "Cinto e tacógrafo", "Carroceria e lona", "Carroceria limpa (sem resto de carga)"],
+    fields: [
+      { key: "moment", label: "Momento", type: "select", options: ["Saída", "Retorno"], required: true },
+      { key: "driver", label: "Motorista / condutor", type: "select", source: "employees", required: true },
+      { key: "odometer", label: "Km / horímetro", type: "number", unit: "km", required: true },
+      { key: "fuel", label: "Combustível", type: "select", options: ["Reserva", "1/4", "1/2", "3/4", "Cheio"] },
+    ],
+    rule: "Qualquer item reprovado na conferência.",
   },
 ];
 

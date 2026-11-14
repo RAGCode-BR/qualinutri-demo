@@ -2,8 +2,10 @@ import { getDemoViewer, viewerName } from "../app/session";
 import { db, simulateLatency } from "../store/db";
 import { isoDate, isoDateTime, newId, today } from "../store/ids";
 import { receivables } from "../kpis/finance";
-import { discountTitle, titleKey } from "./finance";
-import type { Anticipation, Approval, BankId, FleetRequest, Invoice, Mdfe, ProductionOrder } from "./types";
+import { PAYABLE_CATEGORIES, type Payable, type PayableCategory } from "../store/types";
+import { anticipatedKeys, discountTitle, titleKey } from "./finance";
+import type { EvidenceRef } from "../checklist/types";
+import type { Anticipation, Approval, BankId, ExtraReceivable, FleetRequest, Invoice, Mdfe, ProductionOrder, Receipt } from "./types";
 
 export class ErpError extends Error {
   constructor(message: string) {
@@ -147,16 +149,18 @@ export async function requestApproval(input: Pick<Approval, "kind" | "title" | "
 }
 
 /** Motorista/mecânico pede conserto; vai para aprovação da gestão com os orçamentos. */
-export async function createFleetRequest(input: { vehicle: string; problem: string; quotes: FleetRequest["quotes"] }): Promise<void> {
+export async function createFleetRequest(input: { vehicle: string; problem: string; quotes: FleetRequest["quotes"]; evidence?: EvidenceRef[]; checkRecordId?: string | null }): Promise<void> {
   requireWriter();
+  if (!input.vehicle.trim()) throw new ErpError("Escolha o veículo.");
   if (!input.problem.trim()) throw new ErpError("Descreva o problema.");
-  if (!input.quotes.length) throw new ErpError("Informe ao menos um orçamento.");
+  if (!input.quotes.length) throw new ErpError("Informe ao menos um orçamento com valor.");
+  if (input.quotes.some((quote) => !quote.shop.trim())) throw new ErpError("Informe o nome da oficina de cada orçamento.");
   const id = newId();
   await simulateLatency(null);
   db.write((tables) => {
-    tables.erp.fleetRequests.unshift({ id, vehicle: input.vehicle, date: isoDateTime(today()), problem: input.problem.trim(), requestedBy: viewerName(), quotes: input.quotes, chosen: null, status: "aguardando", decidedBy: null, context: null });
+    tables.erp.fleetRequests.unshift({ id, vehicle: input.vehicle, date: isoDateTime(today()), problem: input.problem.trim(), requestedBy: viewerName(), quotes: input.quotes, chosen: null, status: "aguardando", decidedBy: null, context: null, evidence: input.evidence ?? [], checkRecordId: input.checkRecordId ?? null });
     const best = [...input.quotes].sort((a, b) => a.value - b.value)[0];
-    tables.erp.approvals.unshift({ id: newId(), kind: "conserto", title: `Conserto do ${input.vehicle}`, detail: `${input.problem.trim()}. Menor orçamento: ${best.shop} (R$ ${best.value.toLocaleString("pt-BR")}).`, requestedBy: viewerName(), date: isoDateTime(today()), status: "pendente", decidedBy: null, ref: id });
+    tables.erp.approvals.unshift({ id: newId(), kind: "conserto", title: `Conserto do ${input.vehicle}`, detail: `${input.problem.trim().replace(/\.+$/, "")}. Menor orçamento: ${best.shop} (R$ ${best.value.toLocaleString("pt-BR")}).`, requestedBy: viewerName(), date: isoDateTime(today()), status: "pendente", decidedBy: null, ref: id });
   });
 }
 
@@ -218,8 +222,25 @@ export async function advanceOrder(id: string): Promise<ProductionOrder["status"
   return next;
 }
 
+/** Entrada de matéria-prima no estoque (compra recebida na fábrica). */
+export async function receiveMaterial(materialId: string, kg: number, pricePerKg?: number): Promise<void> {
+  requireWriter();
+  if (!(kg > 0)) throw new ErpError("Informe a quantidade recebida em kg.");
+  if (pricePerKg !== undefined && !(pricePerKg > 0)) throw new ErpError("Informe o preço por kg.");
+  const material = db.read().erp.materials.find((item) => item.id === materialId);
+  if (!material) throw new ErpError("Matéria-prima não encontrada.");
+  await simulateLatency(null);
+  db.write((tables) => {
+    const row = tables.erp.materials.find((item) => item.id === materialId)!;
+    // Custo médio ponderado: o preço novo pesa pela quantidade recebida.
+    if (pricePerKg !== undefined) row.pricePerKg = Math.round((((row.stockKg * row.pricePerKg) + (kg * pricePerKg)) / (row.stockKg + kg)) * 10_000) / 10_000;
+    row.stockKg = row.stockKg + kg;
+  });
+}
+
 export async function createOrder(product: string, bags: number, bagKg: number): Promise<void> {
   requireWriter();
+  if (!product) throw new ErpError("Escolha o produto.");
   if (!(bags > 0)) throw new ErpError("Informe a quantidade de sacas.");
   await simulateLatency(null);
   db.write((tables) => {
@@ -231,4 +252,112 @@ export async function createOrder(product: string, bags: number, bagKg: number):
 export async function sendChat(thread: string, text: string): Promise<void> {
   if (!text.trim()) return;
   db.write((tables) => { tables.erp.chat.push({ id: newId(), thread, author: viewerName(), text: text.trim(), at: isoDateTime(today()) }); });
+}
+
+// ---------------------------------------------------------------- Contas a pagar e a receber
+
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+function addMonths(key: string, months: number) {
+  const [year, month, day] = key.split("-").map(Number);
+  const last = new Date(year, month - 1 + months + 1, 0, 12).getDate();
+  return isoDate(new Date(year, month - 1 + months, Math.min(day, last), 12));
+}
+
+export type NewPayable = { supplier: string; category: PayableCategory; description: string; dueDate: string; amount: number; installments?: number };
+
+/** Lança uma conta a pagar; parcelada, vira uma conta por mês com o valor dividido em centavos. */
+export async function createPayable(input: NewPayable): Promise<Payable[]> {
+  requireWriter();
+  const supplier = input.supplier.trim();
+  const description = input.description.trim();
+  const parts = Math.trunc(input.installments ?? 1);
+  if (!supplier) throw new ErpError("Informe o fornecedor.");
+  if (!description) throw new ErpError("Descreva a conta (ex.: nota, serviço, lote).");
+  if (!PAYABLE_CATEGORIES.includes(input.category)) throw new ErpError("Escolha a categoria.");
+  if (!(input.amount > 0)) throw new ErpError("Informe um valor maior que zero.");
+  if (!DATE_KEY.test(input.dueDate)) throw new ErpError("Informe a data de vencimento.");
+  if (parts < 1 || parts > 24) throw new ErpError("Parcelas: de 1 a 24.");
+  const cents = Math.round(input.amount * 100);
+  const each = Math.floor(cents / parts);
+  const created: Payable[] = Array.from({ length: parts }, (_, index) => ({
+    id: newId(),
+    supplier,
+    category: input.category,
+    description: parts > 1 ? `${description} (${index + 1}/${parts})` : description,
+    dueDate: addMonths(input.dueDate, index),
+    amount: (index === parts - 1 ? cents - each * (parts - 1) : each) / 100,
+    paidAt: null,
+    bank: null,
+  }));
+  await simulateLatency(null);
+  db.write((tables) => {
+    tables.payables.push(...created);
+    tables.payables.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  });
+  return created;
+}
+
+/** Paga a conta pela conta bancária escolhida: sai do saldo e entra no extrato já conciliada. */
+export async function payPayable(id: string, bankId: BankId): Promise<Payable> {
+  requireWriter();
+  const tables = db.read();
+  const payable = tables.payables.find((item) => item.id === id);
+  if (!payable) throw new ErpError("Conta não encontrada.");
+  if (payable.paidAt) throw new ErpError("Esta conta já foi paga.");
+  const bank = tables.erp.banks.find((item) => item.id === bankId);
+  if (!bank) throw new ErpError("Banco não encontrado.");
+  if (bank.balance < payable.amount) throw new ErpError(`Saldo insuficiente no ${bank.name} para pagar esta conta.`);
+  await simulateLatency(null);
+  let paid = payable;
+  db.write((current) => {
+    const row = current.payables.find((item) => item.id === id)!;
+    row.paidAt = isoDateTime(today());
+    row.bank = bankId;
+    paid = { ...row };
+    const target = current.erp.banks.find((item) => item.id === bankId)!;
+    target.balance = round(target.balance - row.amount);
+    current.erp.statement.unshift({ id: newId(), bank: bankId, date: isoDate(today()), description: `PAG ${row.supplier.toUpperCase().slice(0, 24)}`, amount: -row.amount, matched: row.id, suggestion: null });
+  });
+  return paid;
+}
+
+export type NewReceivable = { customer: string; description: string; dueDate: string; amount: number };
+
+/** Conta a receber avulsa, fora de orçamento (venda de sucata, aluguel, reembolso…). */
+export async function createReceivable(input: NewReceivable): Promise<ExtraReceivable> {
+  requireWriter();
+  const customer = input.customer.trim();
+  const description = input.description.trim();
+  if (!customer) throw new ErpError("Informe de quem vamos receber.");
+  if (!description) throw new ErpError("Descreva o que está sendo cobrado.");
+  if (!(input.amount > 0)) throw new ErpError("Informe um valor maior que zero.");
+  if (!DATE_KEY.test(input.dueDate)) throw new ErpError("Informe a data de vencimento.");
+  const row: ExtraReceivable = { id: newId(), customer, description, dueDate: input.dueDate, amount: round(input.amount), createdAt: isoDateTime(today()), createdBy: viewerName() };
+  await simulateLatency(null);
+  db.write((tables) => {
+    tables.erp.extraReceivables = [...(tables.erp.extraReceivables ?? []), row];
+  });
+  return row;
+}
+
+/** Baixa de um título: o valor entra no saldo do banco e no extrato, já conciliado. */
+export async function receiveTitle(key: string, bankId: BankId): Promise<Receipt> {
+  requireWriter();
+  const tables = db.read();
+  const title = receivables(tables, today()).find((item) => titleKey(item) === key);
+  if (!title) throw new ErpError("Título não encontrado.");
+  if (title.paidAt) throw new ErpError("Este título já foi recebido.");
+  if (anticipatedKeys(tables).has(key)) throw new ErpError("Título descontado no banco: quem recebe do cliente é o banco.");
+  const bank = tables.erp.banks.find((item) => item.id === bankId);
+  if (!bank) throw new ErpError("Banco não encontrado.");
+  const receipt: Receipt = { key, paidAt: isoDateTime(today()), bank: bankId, amount: title.amount, by: viewerName() };
+  await simulateLatency(null);
+  db.write((current) => {
+    current.erp.receipts = [...(current.erp.receipts ?? []), receipt];
+    const target = current.erp.banks.find((item) => item.id === bankId)!;
+    target.balance = round(target.balance + title.amount);
+    current.erp.statement.unshift({ id: newId(), bank: bankId, date: isoDate(today()), description: `LIQ ${title.customer.toUpperCase().slice(0, 26)}`, amount: title.amount, matched: key, suggestion: null });
+  });
+  return receipt;
 }

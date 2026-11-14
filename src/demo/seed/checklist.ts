@@ -3,7 +3,7 @@ import { addDays, isoDate, isoDateTime, seededId } from "../store/ids";
 import { evaluateStatus, targetsFor } from "../checklist/compliance";
 import { CHECKLIST_TABS, TAB_BY_ID } from "../checklist/tabs";
 import type { ChecklistRecord, ChecklistTables, ChecklistTabId, EvidenceRef, FieldValue } from "../checklist/types";
-import { chance, int, pick, round2, type Rng } from "./random";
+import { chance, int, mulberry32, pick, round2, type Rng } from "./random";
 
 type Args = { rng: Rng; today: Date; tables: DemoTables };
 
@@ -65,6 +65,7 @@ const evidenceLabels: Record<ChecklistTabId, string[]> = {
   production: ["Foto do lote afetado", "Registro da balança"],
   pests: ["Foto do porta-isca", "Certificado da empresa"],
   cleaning: ["Foto – área limpa", "MTR do resíduo"],
+  fleetCheck: ["Foto – painel e km", "Foto – pneus", "Foto – carroceria"],
 };
 
 function evidence(rng: Rng, tab: ChecklistTabId): EvidenceRef[] {
@@ -128,6 +129,10 @@ function valuesFor(rng: Rng, tab: ChecklistTabId, tables: DemoTables, base: Omit
       return { type: pick(rng, ["Peso fora do padrão no envase", "Contaminação cruzada", "Rotulagem incorreta", "Mistura errada", "Embalagem danificada"]), product: product.id ?? null, lot: lot(rng), affected: int(rng, 5, 180), cause: pick(rng, ["Balança descalibrada.", "Sequência de produção sem flushing.", "Etiqueta do lote anterior.", "Erro de pesagem do premix."]), action: pick(rng, ["Reembalado e conferido.", "Lote segregado e reprocessado.", "Ajuste de procedimento e treinamento."]) };
     case "pests":
       return { consumption: bad ? int(rng, 25, 80) : int(rng, 0, 15), company: "Controle Pragas Bio MT", certificate: `CP-${int(rng, 100, 999)}` };
+    case "fleetCheck": {
+      const drivers = base.employees.filter((item) => item.role === "Motorista");
+      return { moment: pick(rng, ["Saída", "Saída", "Retorno"]), driver: pick(rng, drivers.length ? drivers : base.employees).id, odometer: int(rng, 40, 380) * 1000, fuel: pick(rng, ["1/4", "1/2", "3/4", "Cheio"]) };
+    }
     case "cleaning":
       return { sanitizer: pick(rng, ["Álcool 70%", "Quaternário de amônio", "Varredura"]), waste: int(rng, 5, 180), wasteType: pick(rng, ["Varredura de ração", "Sacaria", "Embalagem plástica", "Resíduo orgânico"]), destination: bad && chance(rng, 0.5) ? null : pick(rng, ["Compostagem", "Reciclagem", "Aterro licenciado"]), mtr: chance(rng, 0.5) ? `MTR-${int(rng, 100000, 999999)}` : "" };
   }
@@ -164,7 +169,10 @@ export function buildChecklist({ rng, today, tables }: Args): ChecklistTables {
     return date > today ? new Date(today.getTime() - int(rng, 10, 120) * 60_000) : date;
   };
 
+  // A conferência de frota usa sorteio próprio: as outras abas e o resto do seed continuam iguais.
+  const mainRng = rng;
   for (const tab of CHECKLIST_TABS) {
+    rng = tab.id === "fleetCheck" ? mulberry32(20261114) : mainRng;
     const targets = targetsFor(tab.id, draftTables);
     if (tab.frequencyDays && targets.length) {
       for (const target of targets) {
@@ -192,5 +200,6 @@ export function buildChecklist({ rng, today, tables }: Args): ChecklistTables {
       push(tab.id, timeOn(daysAgo), target?.id ?? null, target?.label ?? null, chance(rng, badChance));
     }
   }
+  rng = mainRng;
   return { ...base, records: records.sort((a, b) => b.date.localeCompare(a.date)) };
 }

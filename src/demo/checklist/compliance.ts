@@ -4,6 +4,9 @@ import { addDays, isoDate } from "../store/ids";
 import { CHECKLIST_TABS, TAB_BY_ID } from "./tabs";
 import type { ChecklistRecord, ChecklistTabId, FieldValue, RecordStatus } from "./types";
 
+/** Equipamentos do cadastro que fazem parte da frota (além dos caminhões). */
+export const FLEET_KINDS: ReadonlySet<string> = new Set(["Veículo leve", "Movimentação"]);
+
 type Draft = Pick<ChecklistRecord, "checks" | "values" | "stage">;
 export type Target = { id: string; label: string; sub?: string };
 
@@ -45,6 +48,7 @@ export function evaluateStatus(tabId: ChecklistTabId, draft: Draft, tables: Demo
       if (failedCheck) return "nao_conforme";
       return closed ? "conforme" : "pendente";
     case "logistics":
+    case "fleetCheck":
       return failedCheck ? "nao_conforme" : "conforme";
     case "safety":
       if (failedCheck || values.training === false) return "nao_conforme";
@@ -86,9 +90,10 @@ export function targetsFor(tabId: ChecklistTabId, tables: DemoTables): Target[] 
   const vehicles = tables.vehicles.filter((vehicle) => vehicle.active).map((vehicle) => ({ id: vehicle.id, label: vehicle.name, sub: vehicle.plate ?? undefined }));
   switch (tab.target) {
     case "vehicle":
-      return tabId === "maintenance"
-        ? [...vehicles, ...tables.checklist.equipment.filter((item) => item.active).map((item) => ({ id: item.id, label: item.name, sub: item.location }))]
-        : vehicles;
+      if (tabId === "maintenance") return [...vehicles, ...tables.checklist.equipment.filter((item) => item.active).map((item) => ({ id: item.id, label: item.name, sub: item.location }))];
+      // Conferência: caminhões, carros e empilhadeira (a frota que roda).
+      if (tabId === "fleetCheck") return [...vehicles, ...tables.checklist.equipment.filter((item) => item.active && FLEET_KINDS.has(item.kind)).map((item) => ({ id: item.id, label: item.name, sub: item.location }))];
+      return vehicles;
     case "employee":
       return tables.checklist.employees.filter((item) => item.active).map((item) => ({ id: item.id, label: item.name, sub: `${item.role} · ${item.sector}` }));
     case "pestPoint":

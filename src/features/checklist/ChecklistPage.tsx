@@ -12,6 +12,7 @@ import { Sparkline } from "../../components/demo/Sparkline";
 import { formatKpi } from "../../components/demo/format";
 import { useCountUp } from "../../components/demo/useCountUp";
 import { RecordDialog } from "./RecordDialog";
+import { NewRequest, repairDraftFrom, type RepairDraft } from "../erp/FleetPage";
 import { RegistryView } from "./RegistryView";
 import { printTabReport } from "./report";
 import { EvidenceThumb, Lightbox, Ring, StatusChip, formatDateTime, toneFor } from "./shared";
@@ -33,6 +34,15 @@ export function ChecklistPage() {
   });
   const [statusFilter, setStatusFilter] = useState<RecordStatus | "all">("all");
   const [dialog, setDialog] = useState<DialogState>(null);
+  // Item reprovado em veículo ou equipamento: oferece abrir o pedido de conserto na hora.
+  const [repairOffer, setRepairOffer] = useState<RepairDraft | null>(null);
+  const [repair, setRepair] = useState<RepairDraft | null>(null);
+  const [notice, setNotice] = useState("");
+
+  function onSaved(record: ChecklistRecord) {
+    setNotice("");
+    setRepairOffer(TAB_BY_ID[record.tab].target === "vehicle" ? repairDraftFrom(record) : null);
+  }
 
   useEffect(() => {
     try { localStorage.setItem(VIEW_KEY, view); } catch { /* sem armazenamento */ }
@@ -70,6 +80,14 @@ export function ChecklistPage() {
         <button type="button" aria-current={view === "registry" ? "page" : undefined} onClick={() => open("registry")}><Database size={16} aria-hidden="true" />Cadastros</button>
       </nav>
 
+      {repairOffer && (
+        <div className="erp-notice ck-repair-offer" role="status">
+          <span><AlertTriangle size={15} aria-hidden="true" /> {repairOffer.vehicle}: item reprovado na conferência.</span>
+          <button type="button" className="primary-button compact-button" onClick={() => { setRepair(repairOffer); setRepairOffer(null); }}>Abrir pedido de conserto</button>
+          <button type="button" className="link-button" onClick={() => setRepairOffer(null)}>Agora não</button>
+        </div>
+      )}
+      {notice && <p className="erp-notice" role="status">{notice}</p>}
       <div className="page-enter" key={view}>
         {view === "panel" && <ConformityPanel summaries={summaries} onOpen={open} onOpenRecord={openRecord} />}
         {view === "registry" && <RegistryView canWrite={canWrite} />}
@@ -83,7 +101,8 @@ export function ChecklistPage() {
           <Plus size={24} aria-hidden="true" />
         </button>
       )}
-      {dialog && <RecordDialog tabId={dialog.tab} record={dialog.record} presetTarget={dialog.target} readOnly={!canWrite} onClose={() => setDialog(null)} />}
+      {dialog && <RecordDialog tabId={dialog.tab} record={dialog.record} presetTarget={dialog.target} readOnly={!canWrite} onSaved={onSaved} onClose={() => setDialog(null)} />}
+      {repair && <NewRequest initial={repair} onClose={() => setRepair(null)} onCreated={() => setNotice("Pedido de conserto enviado para a gestão aprovar (Frota → Pedidos de conserto).")} />}
     </div>
   );
 }

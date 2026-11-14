@@ -11,7 +11,14 @@ export type Installment = {
   dueDate: string;
   amount: number;
   paidAt: string | null;
+  /** Só nas contas avulsas: o que está sendo cobrado. */
+  description?: string;
 };
+
+/** Identificação curta do título: “#1141 · 1/2” ou a descrição da conta avulsa. */
+export function titleRef(item: Pick<Installment, "quoteNumber" | "number" | "of" | "description">) {
+  return item.description ?? `#${item.quoteNumber} · ${item.number}/${item.of}`;
+}
 
 function parseLocalDate(iso: string): Date {
   const date = new Date(iso);
@@ -46,6 +53,7 @@ export function receivables(tables: DemoTables, today: Date): Installment[] {
   for (const item of tables.quote_items) {
     if (!firstItem.has(item.quote_id) || item.display_order === 0) firstItem.set(item.quote_id, item.payment_term_snapshot);
   }
+  const receipts = new Map((tables.erp?.receipts ?? []).map((item) => [item.key, item.paidAt]));
   const list: Installment[] = [];
   for (const quote of tables.quotes) {
     if (quote.status !== "approved" || !quote.approved_at) continue;
@@ -60,9 +68,12 @@ export function receivables(tables: DemoTables, today: Date): Installment[] {
         of: parts.length,
         dueDate: part.dueDate,
         amount: part.amount,
-        paidAt: part.dueDate < todayKey && !late ? part.dueDate : null,
+        paidAt: receipts.get(`${quote.id}:${index + 1}`) ?? (part.dueDate < todayKey && !late ? part.dueDate : null),
       });
     });
+  }
+  for (const extra of tables.erp?.extraReceivables ?? []) {
+    list.push({ quoteId: `avulso:${extra.id}`, quoteNumber: 0, customer: extra.customer, number: 1, of: 1, dueDate: extra.dueDate, amount: extra.amount, paidAt: receipts.get(`avulso:${extra.id}:1`) ?? null, description: extra.description });
   }
   return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
