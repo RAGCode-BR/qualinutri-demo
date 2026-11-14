@@ -7,7 +7,7 @@ import { useDemoVersion, useDemoTables } from "../../demo/app/useDemoTables";
 import { db } from "../../demo/store/db";
 import { newId } from "../../demo/store/ids";
 import { newRecipe } from "../../demo/nutrition/seed";
-import { nutritionState, saveRecipe, saveFeed, deleteFeed, saveAsFeed, publishProduction } from "../../demo/nutrition/service";
+import { nutritionState, saveRecipe, saveFeed, deleteFeed, saveAsFeed, publishProduction, createFormulationTest } from "../../demo/nutrition/service";
 import { recipeBundle, readRecipeBundle, recipeCsv, downloadText } from "../../demo/nutrition/exports";
 import { calculateMixerPlan } from "../../demo/nutrition/mixers";
 import type { Recipe } from "../../demo/nutrition/model";
@@ -42,11 +42,12 @@ export function NutritionPage() {
   function action(work: () => void) {
     try { work(); } catch (reason) { notify(reason instanceof Error ? reason.message : "Não foi possível concluir.", true); }
   }
-  function save() { action(() => { setRecipe(saveRecipe(recipe)); notify("Formulação salva neste navegador."); }); }
+  function save() { action(() => { setRecipe(saveRecipe(recipe)); notify(evaluation.result?.compliant ? "Formulação salva neste navegador." : "Formulação salva para revisão. Há limites não atendidos."); }); }
   function print() {
     action(() => {
       if (!evaluation.result) throw new Error(evaluation.error);
       if (reportKind === "operational") {
+        if (!evaluation.result.compliant) throw new Error("Confira os limites de inclusão e nutrientes antes de emitir a ficha de pesagem.");
         const plan = calculateMixerPlan(recipe, state.feeds);
         if (plan.warnings.length) throw new Error(plan.warnings.join(" "));
       }
@@ -81,7 +82,7 @@ export function NutritionPage() {
         { id: "mixers", label: "Misturadores" }, { id: "analysis", label: "Cenários e versões" },
         { id: "exchange", label: "Arquivos RLM" },
       ]} />
-      {section !== "library" && section !== "exchange" && <Panel title="Formulação em trabalho">
+      {section !== "library" && section !== "exchange" && <Panel title="Formulação em trabalho" description="Edite a composição e acompanhe a avaliação em tempo real. Otimize pelos limites informados, salve a fórmula e emita a pesagem ou envie para produção.">
         <div className="nutrition-actions">
           <select aria-label="Formulação salva" value={state.diets.some((entry) => entry.id === recipe.id) ? recipe.id : ""}
             onChange={(event) => {
@@ -91,6 +92,10 @@ export function NutritionPage() {
             <option value="">Em edição</option>{state.diets.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
           </select>
           <button type="button" className="secondary-button" onClick={() => setRecipe(newRecipe(newId()))}>Nova formulação</button>
+          <button type="button" className="secondary-button" onClick={() => action(() => {
+            setRecipe(createFormulationTest()); setSection("recipe");
+            notify("Fórmula de teste criada com alimentos fictícios próprios. Edite os dados ou clique em Otimizar menor custo para conferir o resultado.");
+          })}>Criar fórmula de teste</button>
           <button type="button" className="secondary-button" onClick={() => { setRecipe({ ...structuredClone(recipe), id: newId(), name: `${recipe.name} · cópia` }); notify("Cópia em edição. Salve para manter esta versão."); }}>Duplicar</button>
           <button type="button" className="primary-button" onClick={save}>Salvar formulação</button>
         </div>

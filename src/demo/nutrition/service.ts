@@ -11,6 +11,32 @@ export function nutritionState(): NutritionWorkspace {
   return tables.nutrition;
 }
 
+/** Cópia independente: o teste não redefine alimentos nem fórmulas do usuário. */
+export function createFormulationTest(): Recipe {
+  const example = buildNutrition();
+  const recipe = example.diets[0];
+  const feedIds = new Map(recipe.ingredients.map((item) => [item.feedId, newId()]));
+  const feeds = example.feeds.filter((feed) => feedIds.has(feed.id)).map((feed) => ({
+    ...feed, id: feedIds.get(feed.id)!, source: "Dados fictícios · teste de formulação",
+  }));
+  const next: Recipe = {
+    ...recipe, id: newId(), name: "Teste · concentrado 1.000 kg",
+    ingredients: recipe.ingredients.map((item) => ({ ...item, feedId: feedIds.get(item.feedId)! })),
+    notes: "Dados fictícios para teste funcional. Milho 70%, soja 28%, premix 2%. Proteína bruta de 18 a 24% MS. " +
+      "Avaliação inicial: 700/280/20 kg por mistura, 88,48% MS e R$ 1.568,80 por tonelada natural. " +
+      "Otimização de menor custo natural esperada: 74,561525% / 23,438475% / 2%, cerca de R$ 1.514,52/t. " +
+      "Exemplo para conferir o sistema, sem recomendação de alimentação.",
+    updatedAt: new Date().toISOString(),
+  };
+  calculateDiet(next, feeds);
+  db.write((tables) => {
+    tables.nutrition ??= buildNutrition();
+    tables.nutrition.feeds.push(...feeds);
+    tables.nutrition.diets.push(next);
+  });
+  return structuredClone(next);
+}
+
 export function saveRecipe(recipe: Recipe) {
   calculateDiet(recipe, nutritionState().feeds);
   if (!recipe.name.trim()) throw new Error("Informe o nome da formulação.");

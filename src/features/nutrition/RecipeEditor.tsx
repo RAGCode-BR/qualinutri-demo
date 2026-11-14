@@ -5,6 +5,7 @@ import { calculateDiet } from "../../demo/nutrition/calculations";
 import type { Recipe } from "../../demo/nutrition/model";
 import { NUTRIENTS, type DietCalculation, type DietOptimization, type NutritionFeed } from "../../demo/nutrition/types";
 import { NumericField } from "./NumericField";
+import { NutritionBalance, NutritionInclusionChecks, NutritionStatus } from "./NutritionBalance";
 
 const basisLabels = { natural: "Matéria natural", dry: "Matéria seca" };
 const format = (value: number) => Number.isFinite(value) ? value.toLocaleString("pt-BR", { maximumFractionDigits: 4 }) : "Sem análise";
@@ -71,7 +72,15 @@ export function RecipeEditor({ recipe, feeds, customers, onChange, onNotice }: {
           <div className="form-grid">
             <label className="field nutrition-field">Nome<input value={recipe.name} maxLength={160} onChange={(event) => update({ name: event.target.value })} /></label>
             <label className="field nutrition-field">Tipo
-              <select value={recipe.kind} onChange={(event) => update({ kind: event.target.value as Recipe["kind"], costBasis: event.target.value === "concentrado" ? "natural" : "dry" })}>
+              <select value={recipe.kind} onChange={(event) => {
+                const kind = event.target.value as Recipe["kind"];
+                update({ kind, costBasis: kind === "concentrado" ? "natural" : "dry",
+                  animal: { ...recipe.animal, category: kind === "corte" ? "corte" : kind === "leite" ? "leite" : "outro" },
+                  economics: kind === "leite"
+                    ? { ...recipe.economics, gainKgDay: undefined, gainPricePerKg: undefined }
+                    : { ...recipe.economics, milkKgDay: undefined, milkPricePerKg: undefined },
+                });
+              }}>
                 <option value="usuario">Exigências informadas</option><option value="corte">Bovinos de corte</option>
                 <option value="leite">Bovinos de leite</option><option value="concentrado">Concentrado e suplemento</option>
               </select>
@@ -160,6 +169,7 @@ export function RecipeEditor({ recipe, feeds, customers, onChange, onNotice }: {
         {result && <DietResults result={result} />}
       </Panel>
       <Panel title="Animal e análise econômica" description="Ganho e produção são valores informados. Os custos são calculados com o consumo e a composição da dieta.">
+        {(recipe.kind === "corte" || recipe.kind === "leite") && <p className="field-hint">As exigências, o consumo e o desempenho devem ser informados pelo nutricionista. Selecionar o tipo de animal não calcula automaticamente as exigências dos modelos do RLM.</p>}
         <fieldset className="nutrition-edit-fields" disabled={busy}>
           <div className="form-grid">
             <NumericField label="Peso corporal informado (kg)" optional value={recipe.animal?.bodyWeightKg} onChange={(value) => update({ animal: { ...recipe.animal, category: recipe.kind === "corte" ? "corte" : recipe.kind === "leite" ? "leite" : "outro", bodyWeightKg: value } })} />
@@ -180,6 +190,7 @@ export function RecipeEditor({ recipe, feeds, customers, onChange, onNotice }: {
 
 export function DietResults({ result }: { result: DietCalculation }) {
   return <>
+    <NutritionStatus result={result} />
     <div className="nutrition-summary">
       <div><span>Custo por t natural</span><strong>{money(result.costPerTonNatural)}</strong></div>
       <div><span>Matéria seca da mistura</span><strong>{format(result.dryMatterPct)}%</strong></div>
@@ -193,13 +204,8 @@ export function DietResults({ result }: { result: DietCalculation }) {
       <div><span>Consumo natural / cabeça / dia</span><strong>{format(result.naturalKgPerHeadDay)} kg</strong></div>
       {result.economics && <div><span>Margem após alimentação e outros custos / dia</span><strong>{money(result.economics.grossMarginPerHeadDay)}</strong></div>}
     </div>
-    <ScrollableTable><table className="data-table"><thead><tr><th>Nutriente</th><th>Resultado na MS</th><th>Mínimo</th><th>Máximo</th><th>Situação</th></tr></thead>
-      <tbody>{Object.entries(result.nutrients).map(([key, value]) => {
-        const nutrient = NUTRIENTS.find((entry) => entry.key === key);
-        const bound = result.constraints.find((entry) => entry.kind === "nutrient" && entry.key === key);
-        return <tr key={key}><td>{nutrient?.label ?? key}</td><td>{format(value)} {nutrient?.unit}</td><td>{bound?.min === undefined ? "—" : format(bound.min)}</td><td>{bound?.max === undefined ? "—" : format(bound.max)}</td><td>{Number.isNaN(value) ? "Análise incompleta" : bound ? bound.satisfied ? "Atende" : "Fora do limite" : "Sem limite"}</td></tr>;
-      })}</tbody></table></ScrollableTable>
-    {result.constraints.some((entry) => !entry.satisfied) && <p className="warning-message">Há restrições de inclusão ou nutrientes fora do limite.</p>}
+    <ScrollableTable><NutritionBalance result={result} /></ScrollableTable>
+    <ScrollableTable><NutritionInclusionChecks result={result} /></ScrollableTable>
     {result.incompleteNutrients.length > 0 && <p className="field-hint">Nutrientes com análise ausente em algum ingrediente · {result.incompleteNutrients.join(", ")}.</p>}
   </>;
 }
