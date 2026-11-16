@@ -21,6 +21,10 @@ import type { TabId } from "../../layouts/AppSidebar";
 import { REAL_KPI_IDS, realDaySelection, realMonthNet, realProductRanking, realRecentDocs, withRealKpis } from "../../demo/history/dashboard";
 import { customerName, sellerName } from "../../demo/history/sales";
 import { HistoryDetail, type HistorySelection } from "../reports-center/HistoryDetail";
+import { REAL_SHORTCUTS, openReal } from "../../demo/history/entry";
+import { FileText } from "lucide-react";
+import { useRealOnly } from "../../demo/realOnly";
+import { NoRealData } from "../../components/demo/NoRealData";
 
 const ORDER_KEY = "qualinutri-demo:dashboard-order";
 const periodLabels: Record<PeriodKey, string> = { today: "Hoje", "7d": "7 dias", month: "Mês" };
@@ -53,6 +57,7 @@ export function DashboardPage() {
   const [drawer, setDrawer] = useState<OpenDrawer | null>(null);
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
   const [detail, setDetail] = useState<HistorySelection | null>(null);
+  const realOnly = useRealOnly();
   const now = demoToday();
   const period = periodFor(periodKey, now);
 
@@ -120,7 +125,7 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
-      <section className="dash-hero glass-dark">
+      <section className="dash-hero glass-dark is-real">
         <div className="dash-hero-top">
           <div>
             <p className="dash-greet"><Sparkles size={16} aria-hidden="true" /> {greeting(now)}{name ? `, ${name}` : ""}</p>
@@ -133,11 +138,11 @@ export function DashboardPage() {
           </div>
         </div>
         <button type="button" className="dash-hero-main" onClick={() => open(sales)}>
-          <span className="dash-hero-label">Vendas líquidas · {periodLabels[periodKey].toLowerCase()} · TGA</span>
+          <span className="dash-hero-label">Vendas líquidas · {periodLabels[periodKey].toLowerCase()} <span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span></span>
           <strong className="dash-hero-value">{formatKpi(animatedSales, "currency")}</strong>
           <span className="dash-hero-caption">{sales.caption} · clique para ver a lista <ArrowUpRight size={15} aria-hidden="true" /></span>
         </button>
-        <AreaChart values={trend} labels={trendLabels} onSelect={(index) => setDrawer({ selection: realDaySelection(isoDate(addDays(now, index - trend.length + 1))), target: "sellers" })} />
+        <AreaChart values={trend} labels={trendLabels} onSelect={(index) => setDrawer({ selection: realDaySelection(isoDate(addDays(now, index - trend.length + 1))), target: "analytics" })} />
       </section>
 
       {(() => {
@@ -147,13 +152,24 @@ export function DashboardPage() {
         const missing = Math.max(0, goal - billed);
         const days = Math.max(1, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate());
         return (
-          <button type="button" className="dash-goal" onClick={() => canAccessTab("finance", profile) && navigate("finance")}>
-            <span className="dash-goal-text"><strong>Meta do mês: {formatKpi(billed, "currency", true)} de {formatKpi(goal, "currency", true)}</strong><small>{missing ? `Faltam ${formatKpi(missing, "currency", true)} · ${formatKpi(missing / days, "currency", true)} por dia nos próximos ${days} dias` : "Meta batida!"}</small></span>
+          <button type="button" className="dash-goal is-real" onClick={() => canAccessTab("finance", profile) && navigate("finance")}>
+            <span className="dash-goal-text"><strong><span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span> Meta do mês: {formatKpi(billed, "currency", true)} de {formatKpi(goal, "currency", true)}</strong><small>{missing ? `Faltam ${formatKpi(missing, "currency", true)} · ${formatKpi(missing / days, "currency", true)} por dia nos próximos ${days} dias` : "Meta batida!"}</small></span>
             <span className="erp-goal-bar"><span style={{ width: `${Math.min(100, (billed / goal) * 100)}%` }} /></span>
             <b>{Math.round((billed / goal) * 100)}%</b>
           </button>
         );
       })()}
+
+      {canAccessTab("analytics", profile) && (
+        <nav className="dash-real-links" aria-label="Relatórios com dados reais">
+          <span className="dash-real-title"><span className="kpi-real">real · TGA</span> Relatórios dos PDFs</span>
+          {REAL_SHORTCUTS.map((item) => (
+            <button key={item.key} type="button" title={`${item.hint} · ${item.source}`} onClick={() => openReal(item.target, navigate)}>
+              <FileText size={14} aria-hidden="true" /> {item.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       <section className="kpi-grid" aria-label="Indicadores (arraste para reorganizar)">
         {cards.map((kpi, index) => (
@@ -173,10 +189,10 @@ export function DashboardPage() {
       </section>
 
       <div className="dash-columns">
-        <section className="dash-card">
+        <section className="dash-card is-real">
           <header className="dash-card-head">
-            <h2>Produtos mais vendidos · 01–13/11</h2>
-            <button type="button" className="link-button" onClick={() => open(kpis.find((kpi) => kpi.id === "topProduct")!)}>Ver ranking</button>
+            <h2>Produtos mais vendidos · 01–13/11 <span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span></h2>
+            <button type="button" className="link-button" onClick={() => openReal({ kind: "report", id: "vendas-produto" }, navigate)}>Ver relatório</button>
           </header>
           <BarList
             format="currency"
@@ -188,10 +204,12 @@ export function DashboardPage() {
         <section className="dash-card">
           <header className="dash-card-head">
             <h2>Fluxo de caixa · 4 semanas</h2>
-            <span className="kpi-sim">simulado</span>
+            {!realOnly && <span className="kpi-sim">simulado</span>}
           </header>
+          {realOnly ? <NoRealData compact /> : <>
           <CashflowBars weeks={weeks} onSelect={(index) => setSheet({ kind: "week", index })} />
           <div className="cashflow-legend"><span className="legend-in">Entradas</span><span className="legend-out">Saídas</span></div>
+          </>}
         </section>
 
         {canAccessTab("checklist", profile) && (
@@ -200,6 +218,7 @@ export function DashboardPage() {
               <h2>Conformidade operacional · 30 dias</h2>
               <button type="button" className="link-button" onClick={() => navigate("checklist")}>Abrir módulo</button>
             </header>
+            {realOnly ? <NoRealData compact /> : <>
             <div className="dash-compliance-body">
               <button type="button" className="dash-compliance-ring" onClick={() => navigate("checklist")}><Ring value={compliance.pct} size={110} stroke={10} tone={toneFor(compliance.pct)} /></button>
               <ul className="dash-compliance-list">
@@ -209,11 +228,13 @@ export function DashboardPage() {
               </ul>
             </div>
             <button type="button" className="dash-compliance-alert" onClick={() => setDrawer({ selection: compliance.attention })}>{compliance.attention.rows.length} itens precisam de atenção →</button>
+            </>}
           </section>
         )}
 
         <section className="dash-card">
           <header className="dash-card-head"><h2>Funil de orçamentos</h2></header>
+          {realOnly ? <NoRealData compact /> : <>
           <ol className="funnel">
             {([
               { key: "created", label: "Criados", value: funnel.created },
@@ -226,12 +247,13 @@ export function DashboardPage() {
             ))}
           </ol>
           <button type="button" className="link-button" onClick={() => setDrawer({ selection: funnelSelection(tables, period, "cancelled"), target: "quotes" })}>{funnel.cancelled} cancelados no período</button>
+          </>}
         </section>
 
-        <section className="dash-card">
+        <section className="dash-card is-real">
           <header className="dash-card-head">
-            <h2>Vendas recentes</h2>
-            {canAccessTab("sellers", profile) && <button type="button" className="link-button" onClick={() => navigate("sellers")}>Abrir {tabLabels.sellers}</button>}
+            <h2>Vendas recentes <span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span></h2>
+            {canAccessTab("analytics", profile) && <button type="button" className="link-button" onClick={() => openReal({ kind: "report", id: "vendas-periodo" }, navigate)}>Ver todas no relatório</button>}
           </header>
           <ul className="activity">
             {recent.map((doc, index) => (
@@ -266,7 +288,7 @@ export function DashboardPage() {
       {sheet?.kind === "product" && <ProductSheet tables={tables} productName={sheet.name} from={period.from} to={period.to} onOpen={() => { setSheet(null); navigate("prices"); }} onClose={() => setSheet(null)} />}
       {sheet?.kind === "day" && <DaySheet tables={tables} day={sheet.day} onOpenQuote={(id) => setSheet({ kind: "quote", id })} onClose={() => setSheet(null)} />}
       {sheet?.kind === "week" && <WeekSheet tables={tables} today={now} weekIndex={sheet.index} onClose={() => setSheet(null)} />}
-      {detail && <HistoryDetail selection={detail} onSelect={setDetail} onSeller={() => { setDetail(null); navigate("sellers"); }} onClose={() => setDetail(null)} />}
+      {detail && <HistoryDetail selection={detail} onSelect={setDetail} onSeller={(id, tab) => { setDetail(null); openReal({ kind: "report", id: tab === "products" ? "vendas-produto" : "vendas-periodo", seller: id }, navigate); }} onClose={() => setDetail(null)} />}
       {drawer && (
         <DetailDrawer
           selection={drawer.selection}

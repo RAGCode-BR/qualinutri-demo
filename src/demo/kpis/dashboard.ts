@@ -22,6 +22,8 @@ export type Kpi = {
   higherIsWorse?: boolean;
   trend: number[];
   simulated?: boolean;
+  /** Valor vindo do histórico real (PDFs TGA). */
+  real?: boolean;
   target?: TabId;
   selection: DrawerSelection;
 };

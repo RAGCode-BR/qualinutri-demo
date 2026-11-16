@@ -4,6 +4,8 @@ import type { Kpi } from "../../demo/kpis/dashboard";
 import { formatKpi } from "./format";
 import { Sparkline } from "./Sparkline";
 import { useCountUp } from "./useCountUp";
+import { useRealOnly } from "../../demo/realOnly";
+import { NO_REAL_TEXT } from "./NoRealData";
 
 type KpiCardProps = {
   kpi: Kpi;
@@ -19,6 +21,7 @@ type KpiCardProps = {
 
 export function KpiCard({ kpi, index, dragging, onOpen, onDragStart, onDragOver, onDrop, onDragEnd, onMove }: KpiCardProps) {
   const animated = useCountUp(kpi.value);
+  const noReal = useRealOnly() && !kpi.real;
   const change = kpi.previous ? ((kpi.value - kpi.previous) / Math.abs(kpi.previous)) * 100 : null;
   const good = change === null ? null : kpi.higherIsWorse ? change <= 0 : change >= 0;
 
@@ -29,7 +32,7 @@ export function KpiCard({ kpi, index, dragging, onOpen, onDragStart, onDragOver,
 
   return (
     <article
-      className={`kpi-card${dragging ? " is-dragging" : ""}${kpi.id === "overdue" && kpi.value > 0 ? " is-alert" : ""}`}
+      className={`kpi-card${dragging ? " is-dragging" : ""}${kpi.id === "overdue" && kpi.value > 0 && !noReal ? " is-alert" : ""}${kpi.real ? " is-real" : ""}${noReal ? " is-no-real" : ""}`}
       style={{ animationDelay: `${index * 60}ms` }}
       draggable
       onDragStart={onDragStart}
@@ -37,11 +40,13 @@ export function KpiCard({ kpi, index, dragging, onOpen, onDragStart, onDragOver,
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
-      <button type="button" className="kpi-card-main" onClick={onOpen}>
+      <button type="button" className="kpi-card-main" onClick={noReal ? undefined : onOpen} aria-disabled={noReal || undefined}>
         <span className="kpi-card-label">
           {kpi.label}
-          {kpi.simulated && <span className="kpi-sim">simulado</span>}
+          {kpi.simulated && !noReal && <span className="kpi-sim">simulado</span>}
+          {kpi.real && <span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span>}
         </span>
+        {noReal ? <span className="no-real-inline">{NO_REAL_TEXT}</span> : <>
         <strong className="kpi-card-value">{formatKpi(animated, kpi.format, true)}</strong>
         <span className="kpi-card-foot">
           {change !== null && Number.isFinite(change) && (
@@ -53,6 +58,7 @@ export function KpiCard({ kpi, index, dragging, onOpen, onDragStart, onDragOver,
           {kpi.caption && <span className="kpi-caption">{kpi.caption}</span>}
         </span>
         {kpi.trend.length > 1 && <Sparkline values={kpi.trend} />}
+        </>}
       </button>
       <button type="button" className="kpi-grip" aria-label={`Mover cartão ${kpi.label} (setas)`} onKeyDown={handleKey}>
         <GripVertical size={16} aria-hidden="true" />

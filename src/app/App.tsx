@@ -45,6 +45,8 @@ import { NutritionPage } from "../features/nutrition/NutritionPage";
 import { ChatPage } from "../features/chat/ChatPage";
 import { ReportsCenter } from "../features/reports-center/ReportsCenter";
 import { ChatLauncher } from "../components/demo/ChatLauncher";
+import { NoRealData } from "../components/demo/NoRealData";
+import { REAL_ONLY_TABS, useRealOnly } from "../demo/realOnly";
 
 const tabContent: Record<TabId, () => React.JSX.Element> = {
   dashboard: DashboardPage,
@@ -76,6 +78,8 @@ const tabContent: Record<TabId, () => React.JSX.Element> = {
 };
 
 const BACK_TABS = new Set<TabId>(["calculator", "chat", "credit"]);
+/* Telas que ganham "Voltar" quando abertas por um atalho dentro de outra tela (ex.: Início → relatório real). */
+const LINK_BACK_TABS = new Set<TabId>(["analytics", "sellers"]);
 
 export function App() {
   const { profile } = useAuth();
@@ -98,7 +102,9 @@ export function App() {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem("qualinutri-demo:sidebar") === "collapsed"; } catch { return false; }
   });
-  const badges = useDemoBadges();
+  const realOnly = useRealOnly();
+  const demoBadges = useDemoBadges();
+  const badges = realOnly ? {} : demoBadges;
   // Ao rolar a página, a barra vira a pílula flutuante só com o logo.
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -110,7 +116,8 @@ export function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const demoTables = useDemoTables();
-  const alerts = useMemo(() => demoAlerts(demoTables, demoToday()), [demoTables]);
+  const alerts = useMemo(() => realOnly ? [] : demoAlerts(demoTables, demoToday()), [demoTables, realOnly]);
+  const noReal = realOnly && !REAL_ONLY_TABS.has(activeTab);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -172,11 +179,11 @@ export function App() {
     });
   }
 
-  function changeTab(tab: TabId, goingBack = false) {
+  function changeTab(tab: TabId, goingBack = false, fromLink = false) {
     const from = activeRef.current;
     // Telas abertas "a partir de outra" (editar orçamento, ampliar conversa, abrir cliente 360°) ganham o
     // botão Voltar; cada Voltar desfaz um passo (Logística → Conversas → Cliente 360° → Conversas → Logística).
-    setTrail((current) => goingBack ? current.slice(0, -1) : BACK_TABS.has(tab) && from !== tab ? [...current, from] : []);
+    setTrail((current) => goingBack ? current.slice(0, -1) : (BACK_TABS.has(tab) || (fromLink && LINK_BACK_TABS.has(tab))) && from !== tab ? [...current, from] : from === tab ? current : []);
     setActiveTab(tab);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -198,7 +205,7 @@ export function App() {
   }), [pendingQuoteId, pendingCustomer]);
 
   return (
-    <NavigationContext.Provider value={changeTab}>
+    <NavigationContext.Provider value={(tab) => changeTab(tab, false, true)}>
     <QuoteEditingContext.Provider value={quoteEditing}>
     <div className={`app-layout${collapsed ? " is-collapsed" : ""}`}>
       <div className="app-backdrop" aria-hidden="true"><span /><span /><span /></div>
@@ -207,24 +214,24 @@ export function App() {
         <AppHeader activeTab={activeTab} menuOpen={menuOpen} collapsed={collapsed || scrolled} onExpand={() => { if (collapsed) toggleCollapsed(); if (scrolled) window.scrollTo({ top: 0, behavior: "smooth" }); }} badges={badges} onNavigate={changeTab} onToggleMenu={() => setMenuOpen((open) => !open)} onToggleCollapsed={toggleCollapsed} alertCount={alerts.length} onOpenSearch={() => setSearchOpen(true)} onOpenAlerts={() => setAlertsOpen(true)} />
         <main id={`panel-${activeTab}`} className={`page page-${activeTab}`} tabIndex={-1}>
           <PageHeading key={`h-${activeTab}-${backTo ?? ""}`} title={activeTab === "calculator" && backTo === "quotes" ? "Orçamento" : tabLabels[activeTab]} group={tabGroups[activeTab]} />
-          {activeTab !== "dashboard" && activeTab !== "prices" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
-          {BACK_TABS.has(activeTab) && backTo && (
+          {!realOnly && activeTab !== "dashboard" && activeTab !== "prices" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
+          {(BACK_TABS.has(activeTab) || LINK_BACK_TABS.has(activeTab)) && backTo && (
             <button type="button" className="back-chip glass-dark" onClick={() => changeTab(backTo, true)}>
               <ArrowLeft size={16} aria-hidden="true" /> Voltar para {tabLabels[backTo]}
             </button>
           )}
-          {activeTab !== "calculator" && <div className="page-enter" key={activeTab}><ActivePage /></div>}
+          {noReal ? <div className="page-enter" key={`nr-${activeTab}`}><NoRealData /></div> : activeTab !== "calculator" && <div className="page-enter" key={activeTab}><ActivePage /></div>}
           <RowClickToEdit />
           {activeTab === "quotes" && <QuoteRowOpener />}
           {activeTab === "loads" && <LoadsRowOpener />}
           <QuoteSavedViewer active={activeTab === "calculator"} />
           {/* A Calculadora fica montada (só escondida) para o pedido em montagem não se perder ao trocar de página. */}
-          <div hidden={activeTab !== "calculator"} className={activeTab === "calculator" ? "page-enter" : undefined}>
+          <div hidden={activeTab !== "calculator" || noReal} className={activeTab === "calculator" ? "page-enter" : undefined}>
             <CalculatorPage />
           </div>
         </main>
         <MobileNav activeTab={activeTab} onChange={changeTab} onOpenMenu={() => setMenuOpen(true)} />
-        {activeTab !== "chat" && <ChatLauncher />}
+        {activeTab !== "chat" && !realOnly && <ChatLauncher />}
         {searchOpen && <CommandPalette onNavigate={changeTab} onClose={() => setSearchOpen(false)} />}
         {alertsOpen && <AlertsPanel alerts={alerts} onNavigate={changeTab} onClose={() => setAlertsOpen(false)} />}
       </div>

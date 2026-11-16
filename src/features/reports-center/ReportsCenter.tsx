@@ -1,7 +1,11 @@
 import { SALES_REPORTS } from "../../demo/reports/sales";
 import { isRealReport } from "../../demo/history/reports";
 import HistoricalSales from "./HistoricalSales";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
+import { useRealOnly } from "../../demo/realOnly";
+import { NoRealData, NO_REAL_TEXT } from "../../components/demo/NoRealData";
+import { REAL_SHORTCUTS, onRealTarget, takeRealTarget, type RealShortcut, type RealTarget } from "../../demo/history/entry";
+import { history as realHistory, money as realMoney, decimal as realDecimal, sum as realSum } from "../../demo/history/sales";
 import {
   ArrowDownUp, ArrowLeft, BarChart3, Boxes, Braces, Building2, ClipboardCheck, Copy, Factory, FileSpreadsheet, FileText, Filter, Landmark,
   Printer, Receipt, RotateCcw, Search, ShoppingCart, Truck, X,
@@ -50,8 +54,27 @@ function preview(report: ReportDef, tables: ReturnType<typeof useDemoTables>, fi
 
 const HIGHLIGHTS = ["vendas-periodo", "vendas-produto", "receber", "carteira"];
 
+const REAL_PERIOD = { from: "2026-11-01", to: "2026-11-13" };
+const REAL_BADGE = <span className="kpi-real" title="Dados reais dos PDFs TGA, 01–13/11/2026">real · TGA</span>;
+
+/** Número de destaque de cada atalho real, tirado direto dos PDFs. */
+function realFigure(item: RealShortcut): { value: string; caption: string } {
+  const h = realHistory;
+  switch (item.key) {
+    case "sellers": return { value: realMoney(realSum(h.documents, (r) => r.net)), caption: `${Object.keys(h.sellers).length} vendedores · líquido` };
+    case "products": return { value: `${new Set(h.products.map((r) => r.code)).size} produtos`, caption: `${realDecimal(realSum(h.products.filter((r) => r.unit === "KG"), (r) => r.quantity))} KG · ${realDecimal(realSum(h.products.filter((r) => r.unit === "SC"), (r) => r.quantity))} SC` };
+    case "documents": return { value: `${h.documents.length} documentos`, caption: "01 a 13/11/2026" };
+    case "reconcile": return { value: "Subtotais conferem", caption: "Diferença bruto × líquido explicada na tela" };
+    default: return { value: "Simulação", caption: "Não altera o histórico real" };
+  }
+}
+
 export function ReportsCenter() {
-  const [historical, setHistorical] = useState(false);
+  const [historical, setHistorical] = useState<{ tab: string; seller: string; query: string; n: number } | null>(null);
+  const [viewNonce, setViewNonce] = useState(0);
+  const realOnly = useRealOnly();
+  /** No modo "Somente dados reais", relatórios só com dados fictícios mostram o aviso no lugar dos números. */
+  const noReal = (item: ReportDef) => realOnly && !isRealReport(item);
   const { profile } = useAuth();
   const tables = useDemoTables();
   const now = today();
@@ -65,9 +88,34 @@ export function ReportsCenter() {
     const filters = defaultFilters(now);
     return Object.fromEntries(allowed.map((report) => [report.id, preview(report, tables, filters, now)])) as Record<string, Preview>;
   }, [tables, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+  const goReal = (target: RealTarget) => {
+    if (target.kind === "report") {
+      memory.filters[target.id] = { ...defaultFilters(now), ...REAL_PERIOD, seller: target.seller ?? "", product: target.product ?? "" };
+      setHistorical(null);
+      setViewNonce((value) => value + 1);
+      open(target.id);
+    } else {
+      open(null);
+      setHistorical({ tab: target.tab, seller: target.seller ?? "", query: target.query ?? "", n: Date.now() });
+    }
+  };
+  useLayoutEffect(() => {
+    const target = takeRealTarget();
+    if (target) goReal(target);
+    return onRealTarget((next) => { takeRealTarget(); goReal(next); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const report = reportId ? REPORT_BY_ID[reportId] : undefined;
-  if (historical) return <HistoricalSales onBack={() => setHistorical(false)} />;
-  if (report && allowed.includes(report)) return <ReportView key={report.id} report={report} onBack={() => open(null)} onOpen={open} />;
+  if (historical) return <HistoricalSales key={historical.n} initialTab={historical.tab} initialSeller={historical.seller} initialQuery={historical.query} onBack={() => setHistorical(null)} />;
+  if (report && allowed.includes(report) && noReal(report)) return (
+    <div className="rc-view">
+      <header className="rc-view-head">
+        <button type="button" className="secondary-button compact-secondary" onClick={() => open(null)}><ArrowLeft size={15} aria-hidden="true" />&nbsp;Todos os relatórios</button>
+        <div className="rc-view-title"><p className="drawer-kicker">{AREA_LABEL[report.area]}</p><h2>{report.title}</h2></div>
+      </header>
+      <NoRealData />
+    </div>
+  );
+  if (report && allowed.includes(report)) return <ReportView key={`${report.id}-${viewNonce}`} report={report} onBack={() => open(null)} onOpen={open} />;
 
   const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const list = allowed.filter((item) => (area === "all" || item.area === area) && (!query || normalize(`${item.title} ${item.description} ${AREA_LABEL[item.area]}`).includes(normalize(query))));
@@ -85,21 +133,42 @@ export function ReportsCenter() {
           <p>Escolha um relatório, filtre como quiser, clique nos gráficos para detalhar e exporte em PDF ou Excel.</p>
           <label className="rc-search"><Search size={16} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar relatório (ex.: produto, atraso, frota)" aria-label="Buscar relatório" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14} aria-hidden="true" /></button>}</label>
         </div>
-        <button className="secondary-button" onClick={() => setHistorical(true)}>Histórico real · Nov/2026 e simulação</button>
         <div className="rc-hero-tiles">
           {hero.map((item) => {
             const data = previews[item.id];
             return (
               <button key={item.id} type="button" className="rc-hero-tile" onClick={() => open(item.id)}>
-                <span>{data.kpi?.label ?? item.title}</span>
+                <span>{noReal(item) ? item.title : data.kpi?.label ?? item.title}</span>
+                {noReal(item) ? <strong className="no-real-inline">{NO_REAL_TEXT}</strong> : <>
                 <strong>{data.kpi ? (data.kpi.text ?? formatValue(data.kpi.value, data.kpi.format)) : "—"}</strong>
                 {data.spark.length > 1 && <Sparkline values={data.spark} width={150} height={30} tone="dark" />}
+                </>}
                 <small>{item.title} →</small>
               </button>
             );
           })}
         </div>
       </section>
+
+      {!query && (
+        <section className="rc-real" aria-label="Dados reais dos PDFs TGA">
+          <h3>Dados reais da Qualinutri {REAL_BADGE}<small>Relatórios TGA · 01 a 13/11/2026 · emitidos em 14/11/2026</small></h3>
+          <div className="rc-real-grid">
+            {REAL_SHORTCUTS.map((item, index) => {
+              const figure = realFigure(item);
+              return (
+                <button key={item.key} type="button" className="rc-real-card" style={{ animationDelay: `${index * 40}ms` }} onClick={() => goReal(item.target)}>
+                  <small className="rc-real-source"><FileText size={13} aria-hidden="true" /> {item.source}</small>
+                  <strong>{item.label}</strong>
+                  <span className="rc-real-figure"><b>{figure.value}</b><small>{figure.caption}</small></span>
+                  <small>{item.hint}</small>
+                  <span className="rc-card-go">Abrir →</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="rc-area-tabs" role="radiogroup" aria-label="Área">
         <button type="button" role="radio" aria-checked={area === "all"} onClick={() => setArea("all")}><BarChart3 size={16} aria-hidden="true" /><span>Todos</span><b>{allowed.length}</b></button>
@@ -119,12 +188,14 @@ export function ReportsCenter() {
               return (
                 <button key={item.id} type="button" className="rc-highlight" onClick={() => open(item.id)}>
                   <header><span className={`rc-card-icon is-${item.area}`}><Icon size={18} aria-hidden="true" /></span><span><strong>{item.title}</strong><small>{AREA_LABEL[item.area]}</small></span></header>
+                  {noReal(item) ? <p className="no-real-inline">{NO_REAL_TEXT}</p> : <>
                   <div className="rc-highlight-value">
                     <span>{data.kpi?.label}</span>
                     <strong>{data.kpi ? (data.kpi.text ?? formatValue(data.kpi.value, data.kpi.format)) : "—"}</strong>
                     {data.change !== null && <ChangeChip change={data.change} />}
                   </div>
                   {data.spark.length > 1 ? <Sparkline values={data.spark} width={320} height={56} /> : <MiniBars bars={data.bars} format={data.barFormat} />}
+                  </>}
                   <span className="rc-card-go">Abrir relatório →</span>
                 </button>
               );
@@ -143,17 +214,17 @@ export function ReportsCenter() {
               {items.map((item, index) => {
                 const data = previews[item.id];
                 return (
-                  <button key={item.id} type="button" className="rc-card" style={{ animationDelay: `${index * 40}ms` }} onClick={() => open(item.id)}>
-                    <strong>{item.title}</strong>
+                  <button key={item.id} type="button" className={`rc-card${isRealReport(item) ? " is-real" : ""}`} style={{ animationDelay: `${index * 40}ms` }} onClick={() => open(item.id)}>
+                    <strong>{item.title}{isRealReport(item) && <> {REAL_BADGE}</>}</strong>
                     <small>{item.description}</small>
-                    <div className="rc-card-preview">
+                    {noReal(item) ? <div className="rc-card-preview"><span className="no-real-inline">{NO_REAL_TEXT}</span></div> : <div className="rc-card-preview">
                       <div>
                         <span>{data.kpi?.label}</span>
                         <b>{data.kpi ? (data.kpi.text ?? formatValue(data.kpi.value, data.kpi.format)) : "—"}</b>
                       </div>
                       {data.change !== null && <ChangeChip change={data.change} />}
                       {data.spark.length > 1 && <Sparkline values={data.spark} width={220} height={30} />}
-                    </div>
+                    </div>}
                     <span className="rc-card-go">Abrir →</span>
                   </button>
                 );
@@ -195,7 +266,9 @@ const PRESETS: Preset[] = [
 ];
 
 function ReportView({ report: suppliedReport, onBack, onOpen }: { report: ReportDef; onBack: () => void; onOpen: (id: string) => void }) {
-  const [real, setReal] = useState(true);
+  const [realChoice, setReal] = useState(true);
+  const realOnly = useRealOnly();
+  const real = realOnly || realChoice;
   const report = !real && isRealReport(suppliedReport) ? SALES_REPORTS.find(r => r.id === suppliedReport.id)! : suppliedReport;
   const tables = useDemoTables();
   const navigate = useNavigate();
@@ -234,7 +307,7 @@ function ReportView({ report: suppliedReport, onBack, onOpen }: { report: Report
 
   return (
     <div className="rc-view">
-      {isRealReport(suppliedReport) && <label className="field">Base dos dados<select value={real ? "real" : "demo"} onChange={e => { setReal(e.target.value === "real"); setFilters({ ...defaultFilters(now), ...(e.target.value === "real" ? { from: "2026-11-01", to: "2026-11-13" } : {}) }); }}><option value="real">Histórico real TGA · 01–13/11/2026</option><option value="demo">Operações simuladas da demo</option></select></label>}
+      {isRealReport(suppliedReport) && !realOnly && <label className="field">Base dos dados<select value={real ? "real" : "demo"} onChange={e => { setReal(e.target.value === "real"); setFilters({ ...defaultFilters(now), ...(e.target.value === "real" ? { from: "2026-11-01", to: "2026-11-13" } : {}) }); }}><option value="real">Histórico real TGA · 01–13/11/2026</option><option value="demo">Operações simuladas da demo</option></select></label>}
       <header className="rc-view-head">
         <button type="button" className="secondary-button compact-secondary" onClick={onBack}><ArrowLeft size={15} aria-hidden="true" />&nbsp;Todos os relatórios</button>
         <div className="rc-view-title">

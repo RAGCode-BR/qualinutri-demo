@@ -67,15 +67,15 @@ export function withRealKpis(kpis: Kpi[], period: Period, today: Date): Kpi[] {
   const leader = ranking[0];
   const real: Partial<Record<Kpi['id'], Kpi>> = {
     sales: {
-      id: 'sales', label: 'Vendas', value: net, format: 'currency', previous: null, trend: realDailySales(today), target: 'sellers', selection: sales,
+      id: 'sales', label: 'Vendas', value: net, format: 'currency', previous: null, trend: realDailySales(today), target: 'analytics', selection: sales,
       caption: `${docs.length} ${docs.length === 1 ? 'documento' : 'documentos'} reais · TGA`,
     },
     ticket: {
-      id: 'ticket', label: 'Ticket médio', value: docs.length ? net / docs.length : 0, format: 'currency', previous: null, trend: [], target: 'sellers',
+      id: 'ticket', label: 'Ticket médio', value: docs.length ? net / docs.length : 0, format: 'currency', previous: null, trend: [], target: 'analytics',
       caption: 'Líquido médio por documento real', selection: sales,
     },
     topProduct: {
-      id: 'topProduct', label: 'Produto mais vendido', value: leader?.value ?? 0, format: 'currency', previous: null, trend: [], target: 'sellers',
+      id: 'topProduct', label: 'Produto mais vendido', value: leader?.value ?? 0, format: 'currency', previous: null, trend: [], target: 'analytics',
       caption: leader ? `${leader.name} · ${leader.quantity.toLocaleString('pt-BR')} ${leader.unit} · 01–13/11` : 'Sem vendas',
       selection: {
         title: 'Ranking real de produtos · 01–13/11',
@@ -84,5 +84,5 @@ export function withRealKpis(kpis: Kpi[], period: Period, today: Date): Kpi[] {
       },
     },
   };
-  return kpis.map(kpi => real[kpi.id] ?? kpi);
+  return kpis.map(kpi => { const r = real[kpi.id]; return r ? { ...r, real: true } : kpi; });
 }

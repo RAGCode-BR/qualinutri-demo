@@ -1,3 +1,4 @@
+import { setRealOnly, useRealOnly } from "../demo/realOnly";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bell, ChevronDown, ChevronsDown, ChevronsUp, Search } from "lucide-react";
 import logoUrl from "../assets/qualinutri-logo.svg";
@@ -132,7 +133,7 @@ export function AppHeader({ activeTab, menuOpen, collapsed, badges = {}, alertCo
           </button>
         )}
         <DataSourceStatus />
-        <span className="demo-pill" title="Todos os dados são fictícios e ficam salvos só neste navegador.">Demonstração</span>
+        <RealOnlySwitch />
         {onOpenAlerts && (
           <button type="button" className="icon-button" onClick={onOpenAlerts} aria-label={`Alertas${alertCount ? `: ${alertCount}` : ""}`}>
             <Bell size={19} aria-hidden="true" />
@@ -147,6 +148,25 @@ export function AppHeader({ activeTab, menuOpen, collapsed, badges = {}, alertCo
     </header>
     )}
     </>
+  );
+}
+
+/** Chave discreta: alterna entre todos os dados da demonstração e somente os dados reais (PDFs TGA). */
+function RealOnlySwitch() {
+  const realOnly = useRealOnly();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={realOnly}
+      aria-label="Somente dados reais"
+      className={`real-toggle${realOnly ? " is-on" : ""}`}
+      title={realOnly ? "Mostrando só os dados reais dos PDFs TGA. Clique para ver também os dados da demonstração." : "Mostrando dados da demonstração. Clique para ver somente os dados reais."}
+      onClick={() => setRealOnly(!realOnly)}
+    >
+      <span className="real-toggle-track" aria-hidden="true"><span /></span>
+      <span className="real-toggle-label">{realOnly ? "Só dados reais" : "Demonstração"}</span>
+    </button>
   );
 }
 

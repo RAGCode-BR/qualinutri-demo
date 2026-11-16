@@ -7,11 +7,11 @@ const rowOpen = (open: () => void) => ({ className: 'is-clickable', tabIndex: 0,
 import { Panel } from '../../components/Panel';
 import { ScrollableTable } from '../../components/ScrollableTable';
 
-export default function HistoricalSales({ onBack, initialSeller = "", initialTab = "products", backLabel = "Voltar aos relatórios" }: { onBack: () => void; initialSeller?: string; initialTab?: string; backLabel?: string }) {
+export default function HistoricalSales({ onBack, initialSeller = "", initialTab = "products", initialQuery = "", backLabel = "Voltar aos relatórios" }: { onBack?: () => void; initialSeller?: string; initialTab?: string; initialQuery?: string; backLabel?: string }) {
   const [tab, setTab] = useState(initialTab);
   const [seller, setSeller] = useState(initialSeller);
   const [unit, setUnit] = useState('');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [negative, setNegative] = useState(false);
   const [start, setStart] = useState('2026-11-01');
   const [end, setEnd] = useState('2026-11-13');
@@ -28,7 +28,7 @@ export default function HistoricalSales({ onBack, initialSeller = "", initialTab
   const add = (r: typeof h.products[number]) => { setLines([...lines, { seller: r.seller, code: r.code, unit: r.unit as 'KG' | 'SC', quantity: 1, price: 0 }]); setNotice('Produto adicionado ao cenário. Informe um preço simulado; o preço histórico não foi aplicado.'); };
   const total = (() => { try { return scenarioTotal(lines); } catch { return null; } })();
   return <div className="nutrition-stack">
-    <button className="secondary-button" onClick={onBack}>{backLabel}</button>
+    {onBack && <button className="secondary-button" onClick={onBack}>{backLabel}</button>}
     <Panel title="Histórico real e simulação comercial" description="Qualinutri · 01 a 13/11/2026 · relatórios TGA emitidos em 14/11/2026.">
       <p>Dados reais dos PDFs: 95 linhas de produtos, 43 produtos, 134 documentos e 13 vendedores. Histórico preservado, separado dos pedidos fictícios da demo.</p>
       <p>Preço médio histórico não é preço atual. KG e SC são unidades independentes; não há conversão automática para peso. Os PDFs não informam os produtos de cada documento, prazos financeiros, estoque ou dimensões.</p>

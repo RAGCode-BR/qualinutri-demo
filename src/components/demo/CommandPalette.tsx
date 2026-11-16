@@ -5,6 +5,9 @@ import { useQuoteEditing } from "../../app/QuoteEditingContext";
 import { useDemoTables } from "../../demo/app/useDemoTables";
 import { canAccessTab, navGroups, type TabId } from "../../layouts/AppSidebar";
 import { formatKpi } from "./format";
+import { REAL_SHORTCUTS, openReal } from "../../demo/history/entry";
+import { isRealOnly } from "../../demo/realOnly";
+import { history as realHistory, customerName as realCustomer } from "../../demo/history/sales";
 
 type Result = { id: string; kind: string; title: string; detail?: string; icon: typeof Search; run: () => void };
 
@@ -36,8 +39,27 @@ export function CommandPalette({ onNavigate, onClose }: CommandPaletteProps) {
       .filter((item) => canAccessTab(item.id, profile))
       .filter((item) => !needle || normalize(`${item.label} ${item.hint}`).includes(needle))
       .map((item) => ({ id: `tab-${item.id}`, kind: "Tela", title: item.label, detail: item.hint, icon: item.icon, run: go(item.id) }));
-    if (!needle) return screens;
-    const list: Result[] = [...screens];
+    const realOk = canAccessTab("analytics", profile);
+    const real = (target: Parameters<typeof openReal>[0]) => () => { onClose(); openReal(target, onNavigate); };
+    const realScreens: Result[] = realOk ? REAL_SHORTCUTS
+      .filter((item) => !needle || normalize(`${item.label} ${item.hint} ${item.source} real tga pdf relatorio`).includes(needle))
+      .map((item) => ({ id: `real-${item.key}`, kind: "Relatório real · TGA", title: item.label, detail: `${item.hint} · ${item.source}`, icon: FileText, run: real(item.target) })) : [];
+    if (!needle) return [...realScreens, ...screens];
+    const list: Result[] = [...realScreens, ...screens];
+    if (realOk) {
+      for (const [id, name] of Object.entries(realHistory.sellers).filter(([id, name]) => normalize(`${id} ${name}`).includes(needle)).slice(0, 4)) {
+        list.push({ id: `rs-${id}`, kind: "Vendedor real · TGA", title: `${id} · ${name}`, detail: "Vendas gerais do vendedor (01–13/11)", icon: User, run: real({ kind: "report", id: "vendas-periodo", seller: id }) });
+      }
+      const products = new Map(realHistory.products.map((row) => [row.code, row.name]));
+      for (const [code, name] of [...products].filter(([code, name]) => normalize(`${code} ${name}`).includes(needle)).slice(0, 4)) {
+        list.push({ id: `rp-${code}`, kind: "Produto real · TGA", title: `${code} · ${name}`, detail: "Quem vendeu, quantidade e valor (01–13/11)", icon: FileText, run: real({ kind: "report", id: "vendas-produto", product: code }) });
+      }
+      const docs = realHistory.documents.filter((row) => normalize(`${row.document} ${row.customerCode} ${realCustomer(row)}`).includes(needle));
+      for (const row of docs.slice(0, 4)) {
+        list.push({ id: `rd-${row.document}-${row.customerCode}`, kind: "Venda real · TGA", title: `${row.document} · ${realCustomer(row)}`, detail: `${row.date.split("-").reverse().join("/")} · ${formatKpi(row.net, "currency")}`, icon: FileText, run: real({ kind: "history", tab: "documents", query: row.document }) });
+      }
+    }
+    if (isRealOnly()) return list;
     if (canAccessTab("customers", profile)) {
       for (const customer of tables.customers.filter((row) => row.active && normalize(`${row.legal_name} ${row.trade_name ?? ""} ${row.document ?? ""}`).includes(needle)).slice(0, 6)) {
         list.push({ id: `c-${customer.id}`, kind: "Cliente · Enter cria orçamento", title: customer.legal_name, detail: customer.document ?? undefined, icon: User, run: () => { onClose(); openCalculatorForCustomer({ id: customer.id, name: customer.legal_name, document: customer.document }); } });

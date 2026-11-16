@@ -1,3 +1,4 @@
+import { useRealOnly } from "../../demo/realOnly";
 import HistoricalSales from "../reports-center/HistoricalSales";
 import { useState } from "react";
 import { useAuth } from "../../app/AuthProvider";
@@ -18,6 +19,7 @@ function normalize(text: string) {
 
 export function ProductsPage() {
   const [real, setReal] = useState(true);
+  const realOnly = useRealOnly();
   const { profile } = useAuth();
   const { data: { mineralProducts, rationProducts, paymentTermIds, paymentTermLabels, priceTableFrom }, source, loading, reload } = useCommercialData();
   const [search, setSearch] = useState("");
@@ -63,6 +65,7 @@ export function ProductsPage() {
     ? { onEdit: (product: Product) => setEditing(asEditable(product)), onDelete: startDelete }
     : {};
 
+  if (realOnly) return <HistoricalSales />;
   if (real) return <HistoricalSales backLabel="Ver tabela de preços simulados da demo" onBack={() => setReal(false)} />;
   return (
     <>
