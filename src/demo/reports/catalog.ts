@@ -1,14 +1,20 @@
+import { realSalesIds, realSalesReport, isRealReport } from "../history/reports";
+import { history, historySellers } from "../history/sales";
 import type { DemoTables } from "../store/types";
 import { customerCity, productGroup, sellerName, type FilterKey, type ReportDef } from "./core";
 import { SALES_REPORTS } from "./sales";
 import { OPERATION_REPORTS } from "./operations";
 
-export const REPORTS: ReportDef[] = [...SALES_REPORTS, ...OPERATION_REPORTS];
+export const REPORTS: ReportDef[] = [...SALES_REPORTS.map(report => realSalesIds.includes(report.id) ? realSalesReport(report) : report), ...OPERATION_REPORTS];
 export const REPORT_BY_ID = Object.fromEntries(REPORTS.map((report) => [report.id, report])) as Record<string, ReportDef>;
 
 /** Opções de cada filtro (valor gravado + rótulo exibido), tiradas dos dados. */
 export function filterOptions(tables: DemoTables, key: FilterKey, report: ReportDef): { value: string; label: string }[] {
   const sorted = (list: { value: string; label: string }[]) => [...new Map(list.map((item) => [item.value, item])).values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  if (isRealReport(report)) {
+    if (key === "seller") return historySellers.map(([value, label]) => ({ value, label: `${value} · ${label}` }));
+    if (key === "product") return sorted(history.products.map(r => ({ value: r.code, label: `${r.code} · ${r.name}` })));
+  }
   switch (key) {
     case "seller": return sorted(tables.profiles.filter((user) => user.role !== "consulta").map((user) => ({ value: user.id, label: sellerName(tables, user.id) })));
     case "customer": return sorted(tables.customers.map((customer) => ({ value: customer.id, label: customer.trade_name || customer.legal_name })));

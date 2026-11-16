@@ -20,6 +20,7 @@ export function ReportDocument({ title, area, filterLines, result }: { title: st
         </div>
       </header>
       <p className="rc-doc-filters">{filterLines.join(" · ")}</p>
+      {result.notes?.map(note => <p key={note}>{note}</p>)}
       <section className="rc-doc-kpis">
         {result.kpis.map((kpi) => (
           <div key={kpi.id}>

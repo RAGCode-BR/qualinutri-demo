@@ -1,3 +1,4 @@
+import { RealSellers } from "../reports-center/RealSellers";
 import { useMemo, useState, type DragEvent } from "react";
 import { ArrowUpRight, CalendarClock, Sparkles } from "lucide-react";
 import { useAuth } from "../../app/AuthProvider";
@@ -119,6 +120,8 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
+      <RealSellers />
+      <p className="field-hint">Indicadores abaixo: operações simuladas da demo, no período selecionado.</p>
       <section className="dash-hero glass-dark">
         <div className="dash-hero-top">
           <div>

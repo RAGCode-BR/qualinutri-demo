@@ -1,3 +1,6 @@
+import { SALES_REPORTS } from "../../demo/reports/sales";
+import { isRealReport } from "../../demo/history/reports";
+import HistoricalSales from "./HistoricalSales";
 import { useMemo, useState } from "react";
 import {
   ArrowDownUp, ArrowLeft, BarChart3, Boxes, Braces, Building2, ClipboardCheck, Copy, Factory, FileSpreadsheet, FileText, Filter, Landmark,
@@ -48,6 +51,7 @@ function preview(report: ReportDef, tables: ReturnType<typeof useDemoTables>, fi
 const HIGHLIGHTS = ["vendas-periodo", "vendas-produto", "receber", "carteira"];
 
 export function ReportsCenter() {
+  const [historical, setHistorical] = useState(false);
   const { profile } = useAuth();
   const tables = useDemoTables();
   const now = today();
@@ -62,6 +66,7 @@ export function ReportsCenter() {
     return Object.fromEntries(allowed.map((report) => [report.id, preview(report, tables, filters, now)])) as Record<string, Preview>;
   }, [tables, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
   const report = reportId ? REPORT_BY_ID[reportId] : undefined;
+  if (historical) return <HistoricalSales onBack={() => setHistorical(false)} />;
   if (report && allowed.includes(report)) return <ReportView key={report.id} report={report} onBack={() => open(null)} onOpen={open} />;
 
   const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -80,6 +85,7 @@ export function ReportsCenter() {
           <p>Escolha um relatório, filtre como quiser, clique nos gráficos para detalhar e exporte em PDF ou Excel.</p>
           <label className="rc-search"><Search size={16} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar relatório (ex.: produto, atraso, frota)" aria-label="Buscar relatório" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Limpar busca"><X size={14} aria-hidden="true" /></button>}</label>
         </div>
+        <button className="secondary-button" onClick={() => setHistorical(true)}>Histórico real · Nov/2026 e simulação</button>
         <div className="rc-hero-tiles">
           {hero.map((item) => {
             const data = previews[item.id];
@@ -188,12 +194,14 @@ const PRESETS: Preset[] = [
   { id: "next30", label: "Próximos 30 dias", range: (now) => [isoDate(now), isoDate(addDays(now, 30))] },
 ];
 
-function ReportView({ report, onBack, onOpen }: { report: ReportDef; onBack: () => void; onOpen: (id: string) => void }) {
+function ReportView({ report: suppliedReport, onBack, onOpen }: { report: ReportDef; onBack: () => void; onOpen: (id: string) => void }) {
+  const [real, setReal] = useState(true);
+  const report = !real && isRealReport(suppliedReport) ? SALES_REPORTS.find(r => r.id === suppliedReport.id)! : suppliedReport;
   const tables = useDemoTables();
   const navigate = useNavigate();
   const { profile } = useAuth();
   const now = today();
-  const [filters, setFiltersState] = useState<ReportFilters>(() => memory.filters[report.id] ?? defaultFilters(now));
+  const [filters, setFiltersState] = useState<ReportFilters>(() => memory.filters[report.id] ?? { ...defaultFilters(now), ...(isRealReport(report) ? { from: "2026-11-01", to: "2026-11-13" } : {}) });
   const setFilters = (next: ReportFilters) => { memory.filters[report.id] = next; setFiltersState(next); };
   const result = useMemo(() => report.run(tables, filters, now), [report, tables, filters]); // eslint-disable-line react-hooks/exhaustive-deps
   const [detail, setDetail] = useState<{ title: string; table: Table } | null>(null);
@@ -226,6 +234,7 @@ function ReportView({ report, onBack, onOpen }: { report: ReportDef; onBack: () 
 
   return (
     <div className="rc-view">
+      {isRealReport(suppliedReport) && <label className="field">Base dos dados<select value={real ? "real" : "demo"} onChange={e => { setReal(e.target.value === "real"); setFilters({ ...defaultFilters(now), ...(e.target.value === "real" ? { from: "2026-11-01", to: "2026-11-13" } : {}) }); }}><option value="real">Histórico real TGA · 01–13/11/2026</option><option value="demo">Operações simuladas da demo</option></select></label>}
       <header className="rc-view-head">
         <button type="button" className="secondary-button compact-secondary" onClick={onBack}><ArrowLeft size={15} aria-hidden="true" />&nbsp;Todos os relatórios</button>
         <div className="rc-view-title">
@@ -279,6 +288,7 @@ function ReportView({ report, onBack, onOpen }: { report: ReportDef; onBack: () 
       <section className={`rc-charts is-${result.charts.length}`}>
         {result.charts.map((chart) => <ReportChart key={chart.id} chart={chart} onDrill={drill} />)}
       </section>
+      {result.notes?.map(note => <p className="rc-hint" key={note}>{note}</p>)}
       <p className="rc-hint">Dica: clique nas barras, fatias e pontos para filtrar; clique numa linha da tabela para abrir o pedido, a carga ou o cliente.</p>
 
       <DataTable id="rc-table" table={result.table} onRow={(row) => { if (row._drill) drill(row._drill); }} />

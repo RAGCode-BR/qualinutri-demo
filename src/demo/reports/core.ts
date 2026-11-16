@@ -1,7 +1,7 @@
 import type { DemoTables } from "../store/types";
 import { addDays, isoDate } from "../store/ids";
 
-export type Fmt = "currency" | "number" | "percent" | "tons" | "kg" | "date" | "text" | "days";
+export type Fmt = "decimal" | "currency" | "number" | "percent" | "tons" | "kg" | "date" | "text" | "days";
 
 export type ReportFilters = {
   from: string;

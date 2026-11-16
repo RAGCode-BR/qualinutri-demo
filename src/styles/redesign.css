@@ -8309,3 +8309,35 @@
   .fin-overview-split .billing-values { text-align: left; }
   .fin-overview-split .billing-label { white-space: normal; }
 }
+
+/* Documentos / PDF: nada pode passar da largura da folha A4 */
+.rc-doc-table th, .rc-doc-table th.is-number { white-space: normal; overflow-wrap: break-word; vertical-align: bottom; line-height: 1.25; }
+.rc-doc-table td { overflow-wrap: anywhere; }
+.doc-viewer-page, .doc-print-root { overflow-wrap: break-word; }
+.doc-viewer-page table, .doc-print-root table { max-width: 100%; }
+.doc-viewer-page th, .doc-print-root th { white-space: normal; }
+
+/* Histórico real: linhas que abrem detalhe e o diálogo de detalhe */
+@media screen {
+  .data-table tr.is-clickable { cursor: pointer; transition: background-color 150ms ease; }
+  .data-table tr.is-clickable:focus-visible { outline: 2px solid var(--brand-600); outline-offset: -2px; }
+  @media (hover: hover) and (pointer: fine) { .data-table tr.is-clickable:hover td { background: rgb(182 229 43 / 12%); } }
+  .history-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 4px 0 14px; }
+  .history-kpis div { padding: 10px 12px; background: var(--brand-50, #eef7ea); border-radius: 12px; }
+  .history-kpis dt { color: var(--ink-3); font-size: 12px; }
+  .history-kpis dd { margin: 2px 0 0; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .history-sub { margin: 14px 0 6px; font-size: 14px; }
+  .history-customer { display: flex; flex-direction: column; margin: 0 0 12px; }
+  .history-customer strong { font-size: 16px; }
+  .history-customer small, .history-note { color: var(--ink-3); font-size: 12.5px; }
+  .history-note { margin: 8px 0 0; }
+  .history-list { display: grid; gap: 6px; max-height: 300px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+  .history-list button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; color: inherit; font: inherit; text-align: left; cursor: pointer; background: #fff; border: 1px solid var(--line); border-radius: 12px; transition: border-color 150ms ease, background-color 150ms ease; }
+  @media (hover: hover) and (pointer: fine) { .history-list button:hover { background: #f6fbf3; border-color: var(--brand-500); } }
+  .history-list button span { display: flex; min-width: 0; flex-direction: column; }
+  .history-list small { color: var(--ink-3); font-size: 12px; }
+  .history-list b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .is-negative { color: var(--danger, #b42318); }
+}
+.rc-doc-table th { padding: 5px 4px; font-size: 7pt; letter-spacing: 0.02em; }
+.rc-doc-table td { padding: 4px 4px; }

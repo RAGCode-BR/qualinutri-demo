@@ -1,3 +1,4 @@
+import { RealSellers } from "../features/reports-center/RealSellers";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { QuoteEditingContext, type QuoteEditingContextValue } from "./QuoteEditingContext";
@@ -47,6 +48,7 @@ import { ChatLauncher } from "../components/demo/ChatLauncher";
 
 const tabContent: Record<TabId, () => React.JSX.Element> = {
   dashboard: DashboardPage,
+  sellers: RealSellers,
   checklist: ChecklistPage,
   yard: YardPage,
   finance: FinancePage,
@@ -205,7 +207,7 @@ export function App() {
         <AppHeader activeTab={activeTab} menuOpen={menuOpen} collapsed={collapsed || scrolled} onExpand={() => { if (collapsed) toggleCollapsed(); if (scrolled) window.scrollTo({ top: 0, behavior: "smooth" }); }} badges={badges} onNavigate={changeTab} onToggleMenu={() => setMenuOpen((open) => !open)} onToggleCollapsed={toggleCollapsed} alertCount={alerts.length} onOpenSearch={() => setSearchOpen(true)} onOpenAlerts={() => setAlertsOpen(true)} />
         <main id={`panel-${activeTab}`} className={`page page-${activeTab}`} tabIndex={-1}>
           <PageHeading key={`h-${activeTab}-${backTo ?? ""}`} title={activeTab === "calculator" && backTo === "quotes" ? "Orçamento" : tabLabels[activeTab]} group={tabGroups[activeTab]} />
-          {activeTab !== "dashboard" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
+          {activeTab !== "dashboard" && activeTab !== "prices" && <PageKpis key={`k-${activeTab}`} tab={activeTab} />}
           {BACK_TABS.has(activeTab) && backTo && (
             <button type="button" className="back-chip glass-dark" onClick={() => changeTab(backTo, true)}>
               <ArrowLeft size={16} aria-hidden="true" /> Voltar para {tabLabels[backTo]}

@@ -18,14 +18,16 @@ test("todos os relatórios rodam com os filtros padrão e trazem KPIs, gráficos
   for (const report of REPORTS) {
     const result = report.run(tables, core.defaultFilters(today), today);
     expect(result.kpis.length, report.id).toBeGreaterThan(0);
-    expect(result.charts.length, report.id).toBeGreaterThan(0);
+    if (report.description.startsWith("Histórico real")) expect(result.notes?.length).toBeGreaterThan(0);
+    else expect(result.charts.length, report.id).toBeGreaterThan(0);
     expect(result.table.columns.length, report.id).toBeGreaterThan(0);
     for (const kpi of result.kpis) expect(Number.isFinite(kpi.value), `${report.id}:${kpi.id}`).toBe(true);
   }
 });
 
 test("vendas por produto soma o mesmo faturamento que vendas por período", async () => {
-  const { tables, core, REPORTS } = await setup();
+  const { tables, core } = await setup();
+  const { SALES_REPORTS: REPORTS } = await import("../../src/demo/reports/sales");
   const filters = core.defaultFilters(today);
   const period = REPORTS.find((report) => report.id === "vendas-periodo")!.run(tables, filters, today);
   const product = REPORTS.find((report) => report.id === "vendas-produto")!.run(tables, filters, today);
@@ -35,7 +37,8 @@ test("vendas por produto soma o mesmo faturamento que vendas por período", asyn
 });
 
 test("filtro de produto restringe as vendas a esse produto", async () => {
-  const { tables, core, REPORTS } = await setup();
+  const { tables, core } = await setup();
+  const { SALES_REPORTS: REPORTS } = await import("../../src/demo/reports/sales");
   const report = REPORTS.find((item) => item.id === "vendas-produto")!;
   const all = report.run(tables, core.defaultFilters(today), today);
   const first = String(all.table.rows[0].produto);
@@ -84,4 +87,23 @@ test("o .xlsx é um zip válido com planilha, indicadores e estilos", async () =
   expect(sheet).toContain("Pedido");
   expect(sheet).toContain("<v>99.9</v>");
   expect(sheet).toContain("<v>46339</v>"); // 13/11/2026 como data do Excel
+});
+
+test('relatórios existentes mostram vendedores reais e preservam negativos, sem inventar quantidades diárias', async () => {
+  const {tables,core,REPORTS}=await setup();
+  const {filterOptions}=await import('../../src/demo/reports/catalog');
+  const report=REPORTS.find(r=>r.id==='vendas-vendedor')!;
+  const filters={...core.defaultFilters(today),from:'2026-11-01',to:'2026-11-13'};
+  expect(filterOptions(tables,'seller',report)).toHaveLength(13);
+  expect(filterOptions(tables,'seller',report).find(r=>r.value==='001')?.label).toContain('AGNALDO');
+  const all=report.run(tables,filters,today);
+  expect(all.kpis[0].value).toBe(395945.88);
+  const agnaldo=report.run(tables,{...filters,seller:'001'},today).table.rows;
+  expect(agnaldo).toHaveLength(1);expect(agnaldo[0]).toMatchObject({kg:7097.1,sc:7,liquido:11778.33,documentos:2});
+  expect(report.run(tables,{...filters,seller:'131'},today).table.rows[0]).toMatchObject({sc:-155,liquido:-9534.4});
+  expect(report.run(tables,{...filters,seller:'001',from:'2026-11-09',to:'2026-11-09'},today).table.rows[0]).toMatchObject({kg:null,sc:null,liquido:11778.33});
+  const products=REPORTS.find(r=>r.id==='vendas-produto')!;
+  const result=products.run(tables,{...filters,seller:'001',product:'000075'},today);
+  expect(result.table.rows).toHaveLength(1);expect(result.table.rows[0]).toMatchObject({unidade:'KG',quantidade:1375,valor:632.5});
+  expect(products.run(tables,{...filters,from:'2026-11-09'},today).table.rows).toEqual([]);
 });

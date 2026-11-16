@@ -11,6 +11,7 @@ export function formatValue(value: string | number | null | undefined, format: F
   if (typeof value === "string" && format !== "date") return value;
   const n = Number(value);
   switch (format) {
+    case "decimal": return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 4 }).format(n);
     case "currency": return currency.format(n);
     case "number": return number.format(n);
     case "percent": return `${decimal.format(n)}%`;

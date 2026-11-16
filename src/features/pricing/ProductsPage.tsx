@@ -1,3 +1,4 @@
+import HistoricalSales from "../reports-center/HistoricalSales";
 import { useState } from "react";
 import { useAuth } from "../../app/AuthProvider";
 import { useCommercialData } from "../../app/CommercialDataProvider";
@@ -16,6 +17,7 @@ function normalize(text: string) {
 }
 
 export function ProductsPage() {
+  const [real, setReal] = useState(true);
   const { profile } = useAuth();
   const { data: { mineralProducts, rationProducts, paymentTermIds, paymentTermLabels, priceTableFrom }, source, loading, reload } = useCommercialData();
   const [search, setSearch] = useState("");
@@ -61,8 +63,10 @@ export function ProductsPage() {
     ? { onEdit: (product: Product) => setEditing(asEditable(product)), onDelete: startDelete }
     : {};
 
+  if (real) return <HistoricalSales backLabel="Ver tabela de preços simulados da demo" onBack={() => setReal(false)} />;
   return (
     <>
+      <button className="secondary-button" onClick={() => setReal(true)}>Produtos reais e vendas por vendedor</button>
       <div className="page-toolbar">
         <p className="page-intro">Preços em R$ por saca, por prazo de pagamento.{priceTableFrom && ` Tabela válida a partir de ${priceTableFrom.split("-").reverse().join("/")}.`}</p>
         <div className="search-field">

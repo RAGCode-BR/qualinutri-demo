@@ -7,7 +7,7 @@ import { useAuth } from "../app/AuthProvider";
 import { DEMO_HIDDEN_TABS } from "../demo/config";
 import type { UserProfile } from "../types/auth";
 
-export type TabId = "analytics" | "chat" | "nutrition" | "finance" | "fiscal" | "credit" | "fleet" | "production" | "approvals" | "yard" | "dashboard" | "calculator" | "discounts" | "terms" | "prices" | "freight" | "policy" | "customers" | "quotes" | "reports" | "updates" | "visits" | "loads" | "checklist" | "users";
+export type TabId = "sellers" | "analytics" | "chat" | "nutrition" | "finance" | "fiscal" | "credit" | "fleet" | "production" | "approvals" | "yard" | "dashboard" | "calculator" | "discounts" | "terms" | "prices" | "freight" | "policy" | "customers" | "quotes" | "reports" | "updates" | "visits" | "loads" | "checklist" | "users";
 
 export type NavItem = { id: TabId; label: string; hint: string; icon: LucideIcon };
 export type NavGroup = { label: string | null; items: NavItem[] };
@@ -18,6 +18,7 @@ export const navGroups: NavGroup[] = [
     label: "Comercial",
     items: [
       { id: "calculator", label: "Novo orçamento", hint: "Monte o orçamento com o preço da política", icon: Calculator },
+      { id: "sellers", label: "Vendedores", hint: "Vendedores reais, produtos e vendas do TGA", icon: Users },
       { id: "quotes", label: "Orçamentos", hint: "Acompanhe, aprove e gere o PDF", icon: FileText },
       { id: "customers", label: "Clientes", hint: "Cadastro, propriedades e histórico", icon: Users },
       { id: "credit", label: "Crédito e cliente 360°", hint: "Score automático, histórico e documentos", icon: ShieldCheck },
