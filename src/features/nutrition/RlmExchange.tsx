@@ -3,6 +3,7 @@ import { Panel } from "../../components/Panel";
 import { ScrollableTable } from "../../components/ScrollableTable";
 import { useDemoVersion } from "../../demo/app/useDemoTables";
 import { db } from "../../demo/store/db";
+import { getDemoViewer } from "../../demo/app/session";
 import { nutritionState, saveRecipe } from "../../demo/nutrition/service";
 import { readRlmFile, type RlmArchive } from "../../demo/nutrition/rlmImport";
 import { convertImportedDiet, mapRlmArchive, rlmRows } from "../../demo/nutrition/rlmMapping";
@@ -88,13 +89,14 @@ function SavedDiets({ archive }: { archive: RlmArchive }) {
   </>;
 }
 
-function ImportedSources({ onImported, onNotice }: { onImported: () => void; onNotice: (message: string, error?: boolean) => void }) {
+function ImportedSources({ onOpenRecipe, onNotice }: { onOpenRecipe: (recipe: ReturnType<typeof convertImportedDiet>) => void; onNotice: (message: string, error?: boolean) => void }) {
   const state = nutritionState();
   const [selectedId, setSelectedId] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [intakes, setIntakes] = useState<Record<string, string>>({});
   const selected = state.imported.find((diet) => diet.id === selectedId) ?? state.imported[0];
   if (!selected) return null;
+  const factory = selected.fields.DIETA_TIPO === "3";
   const storedIntake = Number(selected.fields.RES_CONS);
   const intake = intakes[selected.id] ?? (Number.isFinite(storedIntake) && storedIntake > 0 ? String(storedIntake) : "");
   const numericIntake = /^\d+(?:[.,]\d+)?$/.test(intake.trim()) ? Number(intake.replace(",", ".")) : Number.NaN;
@@ -113,17 +115,16 @@ function ImportedSources({ onImported, onNotice }: { onImported: () => void; onN
         <td>{label}</td><td>{display(selected.fields[key])}</td>
       </tr>)}
     </tbody></table></ScrollableTable>
-    <label className="field">Consumo para nova formulação (kg MS/cabeça/dia)
+    {!factory && <><label className="field">Consumo para nova formulação (kg MS/cabeça/dia)
       <input type="text" inputMode="decimal" value={intake} onChange={(event) => setIntakes({ ...intakes, [selected.id]: event.target.value })} />
     </label>
-    {!Number.isFinite(numericIntake) || numericIntake <= 0 ? <p className="field-hint">Informe o consumo para criar a formulação. O valor salvo no arquivo de origem será preservado.</p> : null}
+    {!Number.isFinite(numericIntake) || numericIntake <= 0 ? <p className="field-hint">Informe o consumo para criar a formulação. O valor salvo no arquivo de origem será preservado.</p> : null}</>}
     <div className="nutrition-actions">
-      <button type="button" className="primary-button" disabled={!Number.isFinite(numericIntake) || numericIntake <= 0} onClick={() => {
+      <button type="button" className="primary-button" disabled={!factory && (!Number.isFinite(numericIntake) || numericIntake <= 0)} onClick={() => {
         try {
-          const recipe = convertImportedDiet(selected, state.feeds, numericIntake);
-          saveRecipe(recipe);
-          onNotice(`Formulação “${recipe.name}” criada. Abra Formulações e selecione-a na lista de formulações salvas.`);
-          onImported();
+          const recipe = convertImportedDiet(selected, state.feeds, factory ? undefined : numericIntake, state.sourceNutrients);
+          onOpenRecipe(saveRecipe(recipe));
+          onNotice(`Formulação “${recipe.name}” aberta para ajuste.`);
         } catch (reason) {
           onNotice(reason instanceof Error ? reason.message : "Não foi possível criar a formulação.", true);
         }
@@ -164,7 +165,7 @@ function ImportedSources({ onImported, onNotice }: { onImported: () => void; onN
   </section>;
 }
 
-export function RlmExchange({ onImported, onNotice }: { onImported: () => void; onNotice: (message: string, error?: boolean) => void }) {
+export function RlmExchange({ onImported, onOpenRecipe, onNotice }: { onImported: () => void; onOpenRecipe: (recipe: ReturnType<typeof convertImportedDiet>) => void; onNotice: (message: string, error?: boolean) => void }) {
   useDemoVersion();
   const state = nutritionState();
   const [archive, setArchive] = useState<RlmArchive | null>(null);
@@ -184,6 +185,7 @@ export function RlmExchange({ onImported, onNotice }: { onImported: () => void; 
     [archive, sourceId, dictionaryId, state.sourceNutrients]);
   const embeddedNutrientIds = new Set(archive ? rlmRows(archive, "Nutr").map((row) => row.NUTR_ID) : []);
   const dictionaryIncomplete = archive && rlmRows(archive, "NutrAlim").some((row) => !embeddedNutrientIds.has(row.NUTR_ID));
+  const dictionaryOnly = mapped && !archive?.tables.some((table) => /^(alim|dieta)\.xml$/i.test(table.name));
 
   async function open(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -206,6 +208,7 @@ export function RlmExchange({ onImported, onNotice }: { onImported: () => void; 
   function saveImport() {
     if (!mapped || !archive || busy) return;
     try {
+      if (getDemoViewer().role === "consulta") throw new Error("O perfil Consulta só visualiza.");
       if (!mapped.feeds.length && !mapped.diets.length && !mapped.dictionaries.length) throw new Error("Selecione um dicionário compatível antes de importar a biblioteca.");
       const next = {
         feeds: [...state.feeds.filter((feed) => !mapped.feeds.some((entry) => entry.id === feed.id)), ...mapped.feeds],
@@ -214,7 +217,9 @@ export function RlmExchange({ onImported, onNotice }: { onImported: () => void; 
       };
       if (JSON.stringify(next).length > 2_500_000) throw new Error("A importação excede o espaço reservado à biblioteca local. Consulte os dados nesta tela ou reduza a exportação.");
       db.write((tables) => { tables.nutrition = { ...state, ...next }; });
-      onNotice(`${mapped.feeds.length} alimentos e ${mapped.diets.length} dietas de origem importados. Confira os custos dos alimentos antes de calcular.`);
+      onNotice(dictionaryOnly
+        ? `Dicionário importado com ${mapped.dictionaries.length} nutrientes.`
+        : `${mapped.feeds.length} alimentos e ${mapped.diets.length} dietas de origem importados. Confira os custos dos alimentos antes de calcular.`);
       onImported();
     } catch (reason) {
       onNotice(reason instanceof Error ? reason.message : "Não foi possível importar os dados.", true);
@@ -222,24 +227,24 @@ export function RlmExchange({ onImported, onNotice }: { onImported: () => void; 
   }
 
   return <Panel title="Arquivos do RLM">
-    <label className="field">Abrir biblioteca ou dieta do RLM<input type="file" accept=".r3a,.r3f,.xml" onChange={(event) => void open(event)} disabled={busy} /></label>
-    <p className="field-hint">Arquivos R3A, R3F ou XML DATAPACKET, até 32 MB. A leitura e a importação acontecem neste navegador.</p>
+    <label className="field">Abrir arquivo do RLM<input type="file" accept=".r3a,.r3f,.r3n,.xml" onChange={(event) => void open(event)} disabled={busy} /></label>
+    <p className="field-hint">Alimentos (R3A), fórmulas (R3F), nutrientes (R3N) ou XML DATAPACKET, até 32 MB. Os arquivos são processados neste navegador.</p>
     {busy && <p role="status">Lendo e conferindo a integridade do arquivo…</p>}
     {error && <p role="alert" className="auth-error">{error}</p>}
-    <ImportedSources onImported={onImported} onNotice={onNotice} />
+    <ImportedSources onOpenRecipe={onOpenRecipe} onNotice={onNotice} />
     {archive && mapped && <>
       <h3>{archive.fileName}</h3>
-      <p>{archive.tables.length} tabelas · {mapped.feeds.length} alimentos compatíveis · {mapped.diets.length} dietas salvas.</p>
+      <p>{dictionaryOnly ? `${mapped.dictionaries.length} nutrientes no dicionário.` : `${archive.tables.length} tabelas · ${mapped.feeds.length} alimentos compatíveis · ${mapped.diets.length} dietas salvas.`}</p>
       {dictionaryIncomplete && <>
         <label className="field">Dicionário de nutrientes do arquivo<select value={dictionaryId} onChange={(event) => setDictionaryId(event.target.value)}>
           <option value="">Selecione um dicionário compatível</option>
-          {[...dictionaries].map(([identity, rows]) => <option key={identity} value={identity}>Dicionário {identity.slice(4, 16)} · {rows.length} nutrientes</option>)}
+          {[...dictionaries].map(([identity, rows]) => <option key={identity} value={identity}>{rows[0]?.fileName ?? `Dicionário ${identity.slice(4, 16)}`} · {rows.length} nutrientes</option>)}
         </select></label>
         <p className="warning-message">O dicionário deste arquivo está incompleto. Para complementar a composição, selecione explicitamente um dicionário da mesma versão. Os campos brutos continuam disponíveis para consulta.</p>
       </>}
       {mapped.skippedFeeds > 0 && <p className="warning-message">{mapped.skippedFeeds} alimentos sem matéria seca positiva ou dicionário compatível serão mantidos somente na consulta do arquivo.</p>}
-      {mapped.feeds.some((feed) => feed.pricePerKgNatural === 0) && <p className="warning-message">Há alimentos com preço pendente. Atualize o custo no cadastro antes da avaliação econômica.</p>}
-      <button type="button" className="primary-button" onClick={saveImport} disabled={!mapped.feeds.length && !mapped.diets.length && !mapped.dictionaries.length}>Importar biblioteca e dietas</button>
+      {mapped.feeds.some((feed) => feed.pricePending) && <p className="warning-message">Há alimentos com preço pendente. Atualize o custo no cadastro antes da avaliação econômica.</p>}
+      <button type="button" className="primary-button" onClick={saveImport} disabled={!mapped.feeds.length && !mapped.diets.length && !mapped.dictionaries.length}>{dictionaryOnly ? "Importar dicionário" : "Importar biblioteca e dietas"}</button>
       <SavedDiets key={sourceId} archive={archive} />
       <h3>Tabelas e metadados do arquivo</h3>
       <FileTables key={sourceId} archive={archive} />

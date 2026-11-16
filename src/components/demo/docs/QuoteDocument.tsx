@@ -1,4 +1,4 @@
-import logoUrl from "../../../assets/qualinutri-logo.png";
+import logoUrl from "../../../assets/qualinutri-logo.svg";
 import { guessDocumentKind } from "../../../domain/documents/brazilianDocument";
 import { calculateOrderWeight } from "../../../domain/order/orderWeight";
 import { describePaymentTerm, paymentTermCondition } from "../../../domain/payment/paymentTerm";

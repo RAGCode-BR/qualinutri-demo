@@ -1,6 +1,7 @@
 import { buildSeed } from "../seed";
 import type { DemoTables } from "./types";
 import { isoDate, today } from "./ids";
+import { seedCash } from "../erp/cash";
 import { ensureChat } from "../chat/seed";
 
 export const STORAGE_KEY = "qualinutri-demo:v1";
@@ -26,6 +27,7 @@ function load(): DemoTables | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Stored>;
     if (parsed.version !== SEED_VERSION || !parsed.tables || !Array.isArray(parsed.tables.customers)) return null;
+    parsed.tables.erp.cash ??= seedCash(new Date((parsed.seededOn ?? isoDate(today())) + "T12:00:00"));
     return parsed.tables;
   } catch {
     return null;

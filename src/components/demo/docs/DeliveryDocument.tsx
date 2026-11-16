@@ -1,4 +1,4 @@
-import logoUrl from "../../../assets/qualinutri-logo.png";
+import logoUrl from "../../../assets/qualinutri-logo-green.svg";
 import type { DemoTables } from "../../../demo/store/types";
 import { installmentsFor } from "../../../demo/kpis/finance";
 import { formatCurrency, formatNumber } from "../../../utils/formatters";

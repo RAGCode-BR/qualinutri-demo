@@ -116,7 +116,7 @@ export async function readRlmFile(file: File): Promise<RlmArchive> {
     return { fileName: file.name, tables: [parseTable(decoder.decode(bytes), xmlTableName(file.name))] };
   }
   if (bytes.length < 30 || view.getUint32(0, true) !== RECORD_SIGNATURE) {
-    throw new Error("O arquivo não corresponde a uma biblioteca R3A, dieta R3F ou XML DATAPACKET.");
+    throw new Error("O arquivo não corresponde a uma biblioteca R3A, dieta R3F, dicionário R3N ou XML DATAPACKET.");
   }
 
   const tables: RlmTable[] = [];
@@ -168,6 +168,8 @@ export async function readRlmFile(file: File): Promise<RlmArchive> {
   if (cursor + 4 > bytes.length || view.getUint32(cursor, true) !== DIRECTORY_SIGNATURE) {
     throw new Error("O diretório final do arquivo RLM está incompleto ou em formato não suportado.");
   }
-  if (!names.has("alim.xml") && !names.has("dieta.xml")) throw new Error("O arquivo não contém uma biblioteca de alimentos ou dietas.");
+  if (!names.has("alim.xml") && !names.has("dieta.xml") && !names.has("nutr.xml")) {
+    throw new Error("O arquivo não contém alimentos, dietas ou um dicionário de nutrientes.");
+  }
   return { fileName: file.name, tables };
 }

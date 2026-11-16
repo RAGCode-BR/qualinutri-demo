@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Calculator, Printer } from "lucide-react";
 import { Panel } from "../components/Panel";
+import { DocViewer } from "../components/demo/docs/DocViewer";
 import { ScrollableTable } from "../components/ScrollableTable";
 import { Select } from "../components/Select";
 import { useCommercialData } from "../app/CommercialDataProvider";
@@ -41,16 +42,13 @@ function dateBr(key: string) {
   return key.split("-").reverse().join("/");
 }
 
-function escape(text: string) {
-  return text.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]!));
-}
-
 /** Compara o mesmo pedido em todos os prazos: preço da saca, total e vencimentos de cada parcela. */
 function TermSimulator() {
   const { data: { products, paymentTermLabels } } = useCommercialData();
   const [productName, setProductName] = useState("");
   const [bags, setBags] = useState(100);
   const [baseDate, setBaseDate] = useState(() => isoDate(today()));
+  const [viewing, setViewing] = useState(false);
   const product = products.find((item) => item.name === productName) ?? products[0];
 
   const rows = useMemo<Row[]>(() => {
@@ -74,22 +72,24 @@ function TermSimulator() {
   const cash = rows[0]?.total ?? 0;
   const tons = product ? (bags * product.weightKg) / 1000 : 0;
 
-  function print() {
-    if (!product) return;
-    const body = rows.map((row) => `<tr><td>${escape(row.label)}</td><td>${formatCurrency(row.price)}</td><td><b>${formatCurrency(row.total)}</b></td><td>${row.parcels.map((part) => `${dateBr(part.dueDate)}: ${formatCurrency(part.amount)}`).join("<br>")}${row.single ? `<br><i>ou direto em ${dateBr(row.single.dueDate)}</i>` : ""}</td></tr>`).join("");
-    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Simulação de prazos</title><style>body{font:13px/1.45 system-ui,sans-serif;color:#0e2116;margin:32px}h1{font-size:20px;margin:0 0 4px}p{color:#4a5850}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #e2e8e3;vertical-align:top}th{font-size:11px;text-transform:uppercase;color:#5f7366}footer{margin-top:20px;color:#5f7366;font-size:11px}</style></head><body><h1>Simulação de prazos de pagamento</h1><p>${bags} sacas de ${escape(product.name)} (${product.weightKg} kg · ${tons.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} t) · data base ${dateBr(baseDate)}</p><table><thead><tr><th>Prazo</th><th>Preço da saca</th><th>Total</th><th>Vencimentos</th></tr></thead><tbody>${body}</tbody></table><footer>Valores de tabela, sem desconto de linha, frete ou chapa. Qualinutri · emitido em ${new Date().toLocaleString("pt-BR")}.</footer><script>window.onload=()=>window.print()</script></body></html>`;
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-  }
-
   return (
     <Panel
       title="Simular prazos"
       description="Escolha um produto e a quantidade: veja o preço e os vencimentos em cada prazo, lado a lado."
-      actions={<button type="button" className="secondary-button compact-secondary" onClick={print} disabled={!rows.length}><Printer size={15} aria-hidden="true" />&nbsp;Imprimir / PDF</button>}
+      actions={<button type="button" className="secondary-button compact-secondary" onClick={() => setViewing(true)} disabled={!rows.length}><Printer size={15} aria-hidden="true" />&nbsp;Ver / imprimir PDF</button>}
     >
+      {viewing && product && (
+        <DocViewer title="Simulação de prazos" subtitle={`${bags} sacas de ${product.name}`} onClose={() => setViewing(false)}
+          actions={<div className="doc-viewer-actions"><button type="button" className="primary-button compact-button" onClick={() => window.print()}><Printer size={15} aria-hidden="true" />&nbsp;Imprimir</button></div>}>
+          <article className="simple-doc">
+            <header><h1>Simulação de prazos de pagamento</h1><p>{bags} sacas de {product.name} ({product.weightKg} kg · {tons.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} t) · data base {dateBr(baseDate)}</p></header>
+            <table><thead><tr><th>Prazo</th><th>Preço da saca</th><th>Total</th><th>Vencimentos</th></tr></thead>
+              <tbody>{rows.map((row) => <tr key={row.label}><td>{row.label}</td><td>{formatCurrency(row.price)}</td><td><b>{formatCurrency(row.total)}</b></td>
+                <td>{row.parcels.map((part) => <div key={part.dueDate}>{dateBr(part.dueDate)}: {formatCurrency(part.amount)}</div>)}{row.single && <i>ou direto em {dateBr(row.single.dueDate)}</i>}</td></tr>)}</tbody></table>
+            <footer>Valores de tabela, sem desconto de linha, frete ou chapa. Qualinutri · emitido em {new Date().toLocaleString("pt-BR")}.</footer>
+          </article>
+        </DocViewer>
+      )}
       <div className="term-sim-form">
         <div className="field">
           <label htmlFor="termSimProduct">Produto</label>

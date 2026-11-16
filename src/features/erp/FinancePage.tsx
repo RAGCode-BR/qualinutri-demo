@@ -6,13 +6,18 @@ import { anticipate, createPayable, createReceivable, payPayable, receiveTitle, 
 import type { Anticipation, BankId } from "../../demo/erp/types";
 import { openPayables, receivables, titleRef } from "../../demo/kpis/finance";
 import { addDays, isoDate, today } from "../../demo/store/ids";
-import { PAYABLE_CATEGORIES, type PayableCategory } from "../../demo/store/types";
+import { PAYABLE_CATEGORIES, type Payable, type PayableCategory } from "../../demo/store/types";
 import { DetailDrawer } from "../../components/demo/DetailDrawer";
 import { Sheet } from "../../components/demo/DetailSheets";
 import type { DrawerSelection } from "../../demo/kpis/dashboard";
+import { Dialog } from "../../components/Dialog";
+import { CreditDialog, SettlementDialog, SettlementHistory, TitleSearch, initialTitleFilter, matchesTitleFilter } from "./FinanceTitles";
+import type { Report } from "../../demo/erp/cashReports";
+import { CashWorkspace, ReportViewer } from "./CashWorkspace";
+import { CASH_ACCOUNTS } from "../../demo/erp/cash";
 import { Chip, Stat, Tabs, dateBr, money } from "./shared";
 
-type Section = "overview" | "payables" | "receivables" | "anticipation" | "reconciliation";
+type Section = "overview" | "payables" | "receivables" | "anticipation" | "reconciliation" | "cash";
 
 export function FinancePage() {
   const tables = useDemoTables();
@@ -29,11 +34,13 @@ export function FinancePage() {
         { id: "payables", label: "Contas a pagar", badge: latePayables },
         { id: "receivables", label: "Contas a receber", badge: lateReceivables },
         { id: "anticipation", label: "Antecipação de títulos" },
+        { id: "cash", label: "Caixa e relatórios" },
         { id: "reconciliation", label: "Conciliação Sicoob/Itaú", badge: pendingLines },
       ]} />
       <div className="page-enter" key={section}>
         {section === "overview" && <Overview onGo={setSection} />}
         {section === "anticipation" && <AnticipationView />}
+        {section === "cash" && <CashWorkspace />}
         {section === "reconciliation" && <Reconciliation />}
         {section === "payables" && <Payables />}
         {section === "receivables" && <Receivables />}
@@ -64,27 +71,20 @@ function Overview({ onGo }: { onGo: (section: Section) => void }) {
   return (
     <div className="erp-grid">
       <section className="kpi-strip">
-        {tables.erp.banks.map((bank, index) => <Stat key={bank.id} index={index} label={`Saldo ${bank.name}`} value={bank.balance} format="currency" caption="Extrato automático · há 3 min" onClick={() => onGo("reconciliation")} />)}
+        {tables.erp.banks.map((bank, index) => <Stat key={bank.id} index={index} label={`Saldo ${bank.name}`} value={bank.balance} format="currency" caption="Saldo da demonstração" onClick={() => onGo("reconciliation")} />)}
         <Stat index={2} label="A receber" value={toReceive.reduce((sum, item) => sum + item.amount, 0)} format="currency" caption={`${toReceive.length} títulos · abrir contas a receber`} onClick={() => onGo("receivables")} />
         <Stat index={3} label="A pagar" value={payables.filter((item) => item.dueDate >= todayKey).reduce((sum, item) => sum + item.amount, 0)} format="currency" tone="warn" caption={`${payables.length} contas em aberto · abrir contas a pagar`} onClick={() => onGo("payables")} />
         <Stat index={4} label="Recebíveis em atraso" value={late.reduce((sum, item) => sum + item.amount, 0)} format="currency" tone="bad" caption={`${late.length} títulos · clique para ver os clientes`} onClick={() => setDrawer(rec(late, "Clientes com títulos em atraso"))} />
       </section>
 
-      <section className="dash-card erp-goal">
-        <div>
-          <p className="drawer-kicker"><Sparkles size={14} aria-hidden="true" /> Meta de faturamento do mês</p>
-          <h2>{money(billedMonth)} <small>de {money(goal)}</small></h2>
-          <p className="muted">{billedMonth >= goal ? "Meta batida!" : <>Faltam <strong>{money(goal - billedMonth)}</strong> em {daysLeft} dias: cerca de <strong>{money((goal - billedMonth) / Math.max(1, daysLeft))}</strong> por dia.</>}</p>
-        </div>
-        <div className="erp-goal-bar"><span style={{ width: `${Math.min(100, (billedMonth / goal) * 100)}%` }} /></div>
-      </section>
+      <div className="fin-overview-split">
 
       <section className="dash-card">
         <header className="dash-card-head">
           <h2>Faturado × já antecipado × livre</h2>
           <button type="button" className="link-button" onClick={() => onGo("anticipation")}>Antecipar títulos</button>
         </header>
-        <p className="muted">Em vez de tirar dois relatórios e fazer a conta à mão: por mês de vencimento, quanto foi faturado, quanto já foi descontado no banco e quanto ainda pode ser antecipado.</p>
+        <p className="muted">Por mês de vencimento: quanto foi faturado, quanto já foi descontado no banco e quanto ainda pode ser antecipado.</p>
         <div className="billing-bars">
           {months.map((month, index) => (
             <button type="button" key={month.key} className="billing-row" style={{ animationDelay: `${index * 90}ms` }} onClick={() => onGo("anticipation")}>
@@ -100,20 +100,31 @@ function Overview({ onGo }: { onGo: (section: Section) => void }) {
         <div className="cashflow-legend"><span className="legend-ant">Já antecipado</span><span className="legend-in">Livre para antecipar</span></div>
       </section>
 
+      <div className="fin-overview-side">
+      <section className="dash-card erp-goal is-side">
+        <div className="erp-goal-text">
+          <p className="drawer-kicker"><Sparkles size={14} aria-hidden="true" /> Meta de faturamento do mês</p>
+          <h2>{money(billedMonth)} <small>de {money(goal)}</small></h2>
+          <p className="muted">{billedMonth >= goal ? "Meta batida!" : <>Faltam <strong>{money(goal - billedMonth)}</strong> em {daysLeft} dias: cerca de <strong>{money((goal - billedMonth) / Math.max(1, daysLeft))}</strong> por dia.</>}</p>
+        </div>
+        <div className="erp-goal-bar" role="progressbar" aria-label="Meta do mês" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100, (billedMonth / goal) * 100))}><span style={{ width: `${Math.min(100, (billedMonth / goal) * 100)}%` }} /></div>
+        <b className="erp-goal-pct">{Math.round((billedMonth / goal) * 100)}%</b>
+      </section>
       <section className="dash-card">
         <header className="dash-card-head"><h2>Saldo consolidado</h2><span className="kpi-sim">simulado</span></header>
         <div className="bank-cards">
           {tables.erp.banks.map((bank) => (
             <button type="button" key={bank.id} className={`bank-card is-${bank.id}`} onClick={() => onGo("reconciliation")}>
-              <Landmark size={22} aria-hidden="true" />
-              <span>{bank.name}</span>
+              <Landmark size={20} aria-hidden="true" />
+              <span className="bank-card-text"><span>{bank.name}</span><small>Desconto {bank.monthlyRate.toLocaleString("pt-BR")}% a.m. · tarifa {money(bank.feePerTitle)}</small></span>
               <strong>{money(bank.balance)}</strong>
-              <small>Desconto {bank.monthlyRate.toLocaleString("pt-BR")}% a.m. · tarifa {money(bank.feePerTitle)}</small>
             </button>
           ))}
-          <div className="bank-card is-total"><Banknote size={22} aria-hidden="true" /><span>Total em conta</span><strong>{money(balance)}</strong><small>Atualizado pela integração bancária</small></div>
+          <div className="bank-card is-total"><Banknote size={20} aria-hidden="true" /><span className="bank-card-text"><span>Total em conta</span><small>Atualizado pela integração bancária</small></span><strong>{money(balance)}</strong></div>
         </div>
       </section>
+      </div>
+      </div>
       {drawer && <DetailDrawer selection={drawer} onClose={() => setDrawer(null)} />}
     </div>
   );
@@ -195,7 +206,7 @@ function AnticipationView() {
               <div><span>Cálculo exato (novo)</span><strong>{money(total("net"))}</strong></div>
               <div className={Math.abs(total("net") - averaged) > 0.009 ? "is-diff" : undefined}><span>Diferença que deixaria o caixa errado</span><strong>{money(total("net") - averaged)}</strong></div>
             </div>
-            <button type="button" className="primary-button" disabled={busy} onClick={() => void run()}>{busy ? "Enviando ao banco…" : `Antecipar ${exact.length} títulos no ${bank.name}`}</button>
+            <button type="button" className="primary-button" disabled={busy} onClick={() => void run()}>{busy ? "Registrando simulação…" : `Antecipar ${exact.length} títulos no ${bank.name}`}</button>
           </>
         )}
       </section>
@@ -213,7 +224,7 @@ function AnticipationView() {
         <Sheet variant="center" label="Antecipação realizada" onClose={() => setResult(null)}>
           <div className="kpi-sheet">
             <header className="kpi-sheet-hero"><span className="kpi-sheet-icon"><CheckCircle2 size={26} /></span><div><p>Crédito na conta {tables.erp.banks.find((item) => item.id === result.bank)?.name}</p><strong>{money(result.net)}</strong><small>{result.titles.length} títulos · bruto {money(result.gross)}</small></div></header>
-            <p className="muted">O crédito já entrou no extrato e foi conciliado. Os títulos aparecem como “descontado” em outra cor na lista de boletos.</p>
+            <p className="muted">O crédito simulado entrou no extrato da demo. Os títulos aparecem como “descontado” em outra cor na lista de boletos.</p>
           </div>
         </Sheet>
       )}
@@ -232,7 +243,7 @@ function Reconciliation() {
   return (
     <div className="erp-grid">
       <section className="kpi-strip">
-        <Stat label="Lançamentos no extrato" value={lines.length} format="number" caption="Puxados direto do banco, sem PDF" />
+        <Stat label="Lançamentos no extrato" value={lines.length} format="number" caption="Movimentações da demonstração" />
         <Stat index={1} label="Conciliados" value={matched} format="number" tone="good" caption={`${Math.round((matched / Math.max(1, lines.length)) * 100)}% automático`} />
         <Stat index={2} label="Com sugestão" value={suggested} format="number" tone="warn" caption="Um clique para confirmar" />
         <Stat index={3} label="Sem correspondência" value={lines.length - matched - suggested} format="number" tone="bad" />
@@ -279,7 +290,7 @@ function BankPicker({ value, onChange, label }: { value: BankId; onChange: (bank
   );
 }
 
-type PayFilter = "open" | "late" | "week" | "paid" | "all";
+type PayFilter = "day" | "open" | "late" | "week" | "paid" | "all";
 
 function Payables() {
   const tables = useDemoTables();
@@ -287,11 +298,16 @@ function Payables() {
   const todayKey = isoDate(now);
   const weekKey = isoDate(addDays(now, 7));
   const monthKey = todayKey.slice(0, 7);
-  const [filter, setFilter] = useState<PayFilter>("late");
+  const [report, setReport] = useState<Report>();
+  const [advanced, setAdvanced] = useState(initialTitleFilter);
+  const [filter, setFilter] = useState<PayFilter>("day");
   const [bankId, setBankId] = useState<BankId>("sicoob");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [date, setDate] = useState(todayKey);
+  const [detail, setDetail] = useState<Payable>();
+  const [paying, setPaying] = useState<Payable>();
+  const [supplierCredits, setSupplierCredits] = useState("");
+  const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const open = tables.payables.filter((item) => !item.paidAt);
@@ -301,23 +317,15 @@ function Payables() {
   const sum = (list: { amount: number }[]) => list.reduce((total, item) => total + item.amount, 0);
   const state = (item: (typeof tables.payables)[number]) => item.paidAt ? "paid" : item.dueDate < todayKey ? "late" : "open";
   const list = tables.payables.filter((item) => {
+    if (!matchesTitleFilter({ due: item.dueDate, issued: item.issuedOn, created: item.createdAt, paid: item.paidAt, account: item.settlement?.cashAccount ?? item.bank,
+      method: item.settlement?.method, document: item.document ?? "", amount: item.amount }, advanced)) return false;
+    if (!`${item.supplier} ${item.description} ${item.document ?? ""}`.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR"))) return false;
+    if (filter === "day") return !item.paidAt && item.dueDate === date;
     if (filter === "all") return true;
     if (filter === "week") return !item.paidAt && item.dueDate >= todayKey && item.dueDate <= weekKey;
     return state(item) === filter;
   }).sort((a, b) => filter === "paid" ? (b.paidAt ?? "").localeCompare(a.paidAt ?? "") : a.dueDate.localeCompare(b.dueDate));
   const labels: Record<string, string> = { open: "A vencer", late: "Vencida", paid: "Paga" };
-
-  async function pay(id: string) {
-    setBusy(id); setError(""); setNotice("");
-    try {
-      const paid = await payPayable(id, bankId);
-      setNotice(`Pago: ${paid.supplier} · ${money(paid.amount)} pelo ${tables.erp.banks.find((bank) => bank.id === bankId)?.name}. Já está no extrato, conciliado.`);
-    } catch (reason) {
-      setError(errorText(reason, "Não foi possível pagar."));
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <div className="erp-grid">
@@ -325,10 +333,10 @@ function Payables() {
         <Stat label="Vencidas" value={sum(late)} format="currency" tone="bad" caption={`${late.length} contas · pagar hoje`} onClick={() => setFilter("late")} />
         <Stat index={1} label="Vencem em 7 dias" value={sum(week)} format="currency" tone="warn" caption={`${week.length} contas`} onClick={() => setFilter("week")} />
         <Stat index={2} label="Em aberto" value={sum(open)} format="currency" caption={`${open.length} contas`} onClick={() => setFilter("open")} />
-        <Stat index={3} label="Pago no mês" value={sum(paidMonth)} format="currency" tone="good" caption={`${paidMonth.length} pagamentos`} onClick={() => setFilter("paid")} />
+        <Stat index={3} label="Pago no mês" value={paidMonth.reduce((total, item) => total + (item.settlement?.net ?? item.amount), 0)} format="currency" tone="good" caption={`${paidMonth.length} pagamentos`} onClick={() => setFilter("paid")} />
       </section>
 
-      {showForm && <PayableForm onClose={() => setShowForm(false)} onCreated={(text) => { setShowForm(false); setNotice(text); setFilter("open"); }} />}
+      {showForm && <PayableForm onClose={() => setShowForm(false)} onCreated={(text) => { setShowForm(false); setNotice(text); setFilter("open"); setQuery(""); }} />}
 
       <section className="dash-card">
         <header className="dash-card-head">
@@ -337,12 +345,22 @@ function Payables() {
         </header>
         <div className="fin-toolbar">
           <div className="segmented-glass ck-seg" role="radiogroup" aria-label="Situação">
-            {([["late", "Vencidas"], ["week", "Próximos 7 dias"], ["open", "A vencer"], ["paid", "Pagas"], ["all", "Todas"]] as const).map(([id, text]) => <button key={id} type="button" role="radio" aria-checked={filter === id} onClick={() => setFilter(id)}>{text}</button>)}
+            {([["day", "Do dia"], ["late", "Vencidas"], ["week", "Próximos 7 dias"], ["open", "A vencer"], ["paid", "Pagas"], ["all", "Todas"]] as const).map(([id, text]) => <button key={id} type="button" role="radio" aria-checked={filter === id} onClick={() => setFilter(id)}>{text}</button>)}
           </div>
           <div className="fin-bank"><span className="muted">Pagar pela conta</span><BankPicker value={bankId} onChange={setBankId} label="Conta para pagamento" /></div>
         </div>
         {notice && <p className="erp-notice" role="status">{notice}</p>}
-        {error && <p className="auth-error" role="alert">{error}</p>}
+        <div className="fin-toolbar fin-filters">
+          <label className="field">Buscar conta<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+          {filter === "day" && <label className="field">Dia do vencimento<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>}
+          <button type="button" className="secondary-button compact-secondary" onClick={() => setReport({
+            title: "Contas a pagar", subtitle: `${list.length} título(s) · Recorte selecionado`,
+            tables: [{ columns: ["Fornecedor", "Histórico / documento", "Vencimento", "Situação", "Original", "Baixa", "Líquido"],
+              rows: list.map((item) => [item.supplier, [item.description, item.document].filter(Boolean).join(" · "), dateBr(item.dueDate), labels[state(item)], money(item.amount), dateBr(item.paidAt), item.paidAt ? money(item.settlement?.net ?? item.amount) : "–"]),
+              total: ["Total", "", "", "", money(sum(list)), "", money(list.reduce((sum, item) => sum + (item.paidAt ? item.settlement?.net ?? item.amount : 0), 0))] }],
+          })}>Visualizar relatório</button>
+        </div>
+        <TitleSearch value={advanced} onChange={(value) => { setAdvanced(value); if (filter === "day" && (value.from || value.to || value.basis !== "due")) setFilter("all"); }} />
         {list.length === 0 ? <p className="muted">Nenhuma conta nesta situação.</p> : (
           <ul className="title-list is-readonly fin-list">
             {list.map((item) => {
@@ -350,11 +368,12 @@ function Payables() {
               return (
                 <li key={item.id} className={`is-${current}`}>
                   <div>
-                    <span className="title-main"><strong>{item.supplier}</strong><small>{item.category} · {item.description} · vence {dateBr(item.dueDate)}{item.paidAt ? ` · paga em ${dateBr(item.paidAt)}${item.bank ? ` (${item.bank === "sicoob" ? "Sicoob" : "Itaú"})` : ""}` : ""}</small></span>
+                    <button type="button" className="title-main fin-row-open" onClick={() => setDetail(item)} aria-label={`Abrir ${item.supplier}, ${money(item.amount)}`}><strong>{item.supplier}</strong><small>{item.category} · {item.description} · vence {dateBr(item.dueDate)}{item.paidAt ? ` · paga em ${dateBr(item.paidAt)}${item.bank ? ` (${item.bank === "sicoob" ? "Sicoob" : "Itaú"})` : ""}` : ""}</small></button>
                     <Chip tone={current === "paid" ? "good" : current === "late" ? "bad" : "muted"}>{labels[current]}</Chip>
                     <strong>{money(item.amount)}</strong>
-                    {item.paidAt ? <span className="fin-done"><CheckCircle2 size={15} aria-hidden="true" /></span>
-                      : <button type="button" className="secondary-button compact-secondary" disabled={busy !== null} onClick={() => void pay(item.id)}>{busy === item.id ? "Pagando…" : "Pagar"}</button>}
+                    <span className="fin-actions">
+                      {!item.paidAt && <button type="button" className="secondary-button compact-secondary" onClick={() => setPaying(item)}>Pagar</button>}
+                    </span>
                   </div>
                 </li>
               );
@@ -362,6 +381,27 @@ function Payables() {
           </ul>
         )}
       </section>
+      {report && <ReportViewer report={report} onClose={() => setReport(undefined)} />}
+      {detail && <Dialog title={detail.supplier} onClose={() => setDetail(undefined)}>
+        <p>{detail.description} · {money(detail.amount)}</p>
+        <dl>
+          <dt>Documento</dt><dd>{[detail.documentType, detail.document].filter(Boolean).join(" · ") || "Não informado"}</dd>
+          <dt>Emissão / cadastro</dt><dd>{detail.issuedOn ? dateBr(detail.issuedOn) : "—"} / {detail.createdAt ? dateBr(detail.createdAt) : "—"} {detail.createdBy}</dd>
+          <dt>Vencimento / parcela</dt><dd>{dateBr(detail.dueDate)} / {detail.installment ? `${detail.installment.number} de ${detail.installment.total}` : "—"}</dd>
+          <dt>Centro de custo</dt><dd>{detail.costCenter || detail.category}</dd>
+          <dt>Observação do lançamento</dt><dd>{detail.note || "—"}</dd>
+        </dl>
+        <SettlementHistory settlement={detail.settlement} bank={tables.erp.banks.find((bank) => bank.id === detail.bank)?.name} date={detail.paidAt} />
+        <div className="dialog-actions"><button className="secondary-button" onClick={() => { setSupplierCredits(detail.supplier); setDetail(undefined); }}>Créditos do fornecedor</button>
+          <button className="secondary-button" onClick={() => setDetail(undefined)}>Fechar</button></div>
+      </Dialog>}
+      {supplierCredits && <CreditDialog supplier={supplierCredits} onClose={() => setSupplierCredits("")} />}
+      {paying && <SettlementDialog title={`Baixa · ${paying.supplier}`} amount={paying.amount} defaultBank={bankId} supplier={paying.supplier}
+        onClose={() => setPaying(undefined)} onSubmit={async (bank, values) => {
+          const paid = await payPayable(paying.id, bank, values);
+          setNotice(`Baixa registrada: ${paid.supplier} · ${money(paid.settlement?.net ?? paid.amount)}.`);
+          setFilter("paid");
+        }} />}
     </div>
   );
 }
@@ -372,6 +412,7 @@ function PayableForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [supplier, setSupplier] = useState("");
   const [category, setCategory] = useState<PayableCategory>("Matéria-prima");
   const [description, setDescription] = useState("");
+  const [metadata, setMetadata] = useState({ issuedOn: isoDate(today()), document: "", documentType: "", costCenter: "", note: "" });
   const [amount, setAmount] = useState<number | "">("");
   const [dueDate, setDueDate] = useState(() => isoDate(addDays(today(), 15)));
   const [installments, setInstallments] = useState(1);
@@ -387,7 +428,7 @@ function PayableForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
   async function submit() {
     setBusy(true); setError("");
     try {
-      const created = await createPayable({ supplier, category, description, dueDate, amount: amount === "" ? 0 : amount, installments });
+      const created = await createPayable({ ...metadata, supplier, category, description, dueDate, amount: amount === "" ? 0 : amount, installments });
       onCreated(created.length > 1
         ? `${created.length} parcelas lançadas para ${created[0].supplier}: ${created.map((item) => `${dateBr(item.dueDate)} ${money(item.amount)}`).join(" · ")}.`
         : `Conta lançada: ${created[0].supplier} · ${money(created[0].amount)} vence ${dateBr(created[0].dueDate)}.`);
@@ -427,6 +468,10 @@ function PayableForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <label htmlFor="payParts">Parcelas (mensais)</label>
           <input id="payParts" type="number" min={1} max={24} step={1} value={installments} onChange={(event) => setInstallments(Number(event.target.value) || 1)} />
         </div>
+        {([["issuedOn", "Data de emissão", "date"], ["document", "Número da nota ou documento", "text"],
+          ["documentType", "Tipo de documento (NF, DP, frete…)", "text"], ["costCenter", "Centro de custo (ex.: veículo)", "text"],
+          ["note", "Observação (ex.: instruções de pagamento)", "text"]] as const).map(([key, label, type]) =>
+          <label className="field" key={key}>{label}<input type={type} value={metadata[key]} onChange={(event) => setMetadata({ ...metadata, [key]: event.target.value })} /></label>)}
       </div>
       {installments > 1 && typeof amount === "number" && amount > 0 && <p className="muted">{installments}× de cerca de {money(amount / installments)}, uma por mês a partir de {dateBr(dueDate)}.</p>}
       {error && <p className="auth-error" role="alert">{error}</p>}
@@ -448,35 +493,46 @@ function Receivables() {
   const monthKey = todayKey.slice(0, 7);
   const done = anticipatedKeys(tables);
   const [pix, setPix] = useState<{ customer: string; amount: number; key: string } | null>(null);
-  const [filter, setFilter] = useState<RecFilter>("late");
+  const [report, setReport] = useState<Report>();
+  const [advanced, setAdvanced] = useState(initialTitleFilter);
+  const [filter, setFilter] = useState<RecFilter>("all");
   const [bankId, setBankId] = useState<BankId>("sicoob");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [client, setClient] = useState("");
+  const [detailKey, setDetailKey] = useState("");
+  const [receiptKey, setReceiptKey] = useState("");
+  const [limit, setLimit] = useState(50);
   const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
 
-  const all = receivables(tables, now).map((item) => ({ ...item, key: titleKey(item), state: done.has(titleKey(item)) ? "discounted" : item.paidAt ? "paid" : item.dueDate < todayKey ? "late" : "open" }));
+  const receipts = new Map(tables.erp.receipts?.map((item) => [item.key, item]));
+  const anticipation = new Map(tables.erp.anticipations.flatMap((batch) => batch.titles.map((title) => [title.key, batch] as const)));
+  const quotes = new Map(tables.quotes.map((item) => [item.id, item]));
+  const all = receivables(tables, now).map((item) => ({ ...item, clientKey: quotes.get(item.quoteId)?.customer_id || `avulso:${item.customer}`, key: titleKey(item), state: done.has(titleKey(item)) ? "discounted" : item.paidAt ? "paid" : item.dueDate < todayKey ? "late" : "open" }));
   const sum = (list: { amount: number }[]) => list.reduce((total, item) => total + item.amount, 0);
   const late = all.filter((item) => item.state === "late");
   const open = all.filter((item) => item.state === "open");
   const week = open.filter((item) => item.dueDate <= weekKey);
   const receivedMonth = all.filter((item) => item.state === "paid" && item.paidAt?.startsWith(monthKey));
-  const list = all.filter((item) => filter === "all" || (filter === "week" ? item.state === "open" && item.dueDate <= weekKey : item.state === filter))
-    .sort((a, b) => filter === "paid" ? (b.paidAt ?? "").localeCompare(a.paidAt ?? "") : a.dueDate.localeCompare(b.dueDate)).slice(0, 120);
-  const labels: Record<string, string> = { open: "A vencer", late: "Vencido", discounted: "Descontado", paid: "Recebido" };
+  const extra = new Map(tables.erp.extraReceivables?.map((item) => [`avulso:${item.id}`, item]));
+  const list = all.filter((item) => {
+    const quote = quotes.get(item.quoteId);
+    const saved = receipts.get(item.key);
+    const created = quote?.created_at ?? extra.get(item.quoteId)?.createdAt;
+    return matchesTitleFilter({ due: item.dueDate, issued: quote?.approved_at ?? created, created, paid: item.paidAt,
+      account: saved?.settlement?.cashAccount ?? saved?.bank ?? anticipation.get(item.key)?.bank, method: saved?.settlement?.method,
+      document: titleRef(item), amount: item.amount }, advanced);
+  }).filter((item) => (!client || item.clientKey === client) && (filter === "all" || (filter === "week" ? item.state === "open" && item.dueDate <= weekKey : item.state === filter)))
+    .sort((a, b) => filter === "paid" ? (b.paidAt ?? "").localeCompare(a.paidAt ?? "") : a.dueDate.localeCompare(b.dueDate));
+  const labels: Record<string, string> = { open: "A vencer", late: "Vencido", discounted: "Antecipado", paid: "Recebido" };
 
-  async function receive(key: string) {
-    setBusy(key); setError(""); setNotice("");
-    try {
-      const receipt = await receiveTitle(key, bankId);
-      const title = all.find((item) => item.key === key);
-      setNotice(`Recebido: ${title?.customer ?? "título"} · ${money(receipt.amount)} no ${tables.erp.banks.find((bank) => bank.id === bankId)?.name}. Baixa feita e extrato conciliado.`);
-    } catch (reason) {
-      setError(errorText(reason, "Não foi possível dar baixa."));
-    } finally {
-      setBusy(null);
-    }
-  }
+  const clients = [...new Map(all.map((item) => [item.clientKey, item.customer])).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  const detail = all.find((item) => item.key === detailKey);
+  const receiving = all.find((item) => item.key === receiptKey);
+  const receipt = detail && receipts.get(detail.key);
+  const discounted = detail && anticipation.get(detail.key);
+  const quote = detail && quotes.get(detail.quoteId);
+  const items = quote ? tables.quote_items.filter((item) => item.quote_id === quote.id) : [];
+  const bankName = (id?: BankId | null) => tables.erp.banks.find((bank) => bank.id === id)?.name;
 
   return (
     <div className="erp-grid">
@@ -484,51 +540,85 @@ function Receivables() {
         <Stat label="Em atraso" value={sum(late)} format="currency" tone="bad" caption={`${late.length} títulos · cobrar`} onClick={() => setFilter("late")} />
         <Stat index={1} label="Vencem em 7 dias" value={sum(week)} format="currency" tone="warn" caption={`${week.length} títulos`} onClick={() => setFilter("week")} />
         <Stat index={2} label="A receber" value={sum(open)} format="currency" caption={`${open.length} títulos a vencer`} onClick={() => setFilter("open")} />
-        <Stat index={3} label="Recebido no mês" value={sum(receivedMonth)} format="currency" tone="good" caption={`${receivedMonth.length} baixas`} onClick={() => setFilter("paid")} />
+        <Stat index={3} label="Recebido no mês" value={receivedMonth.reduce((total, item) => total + (receipts.get(item.key)?.amount ?? item.amount), 0)} format="currency" tone="good" caption={`${receivedMonth.length} baixas`} onClick={() => setFilter("paid")} />
       </section>
 
-      {showForm && <ReceivableForm onClose={() => setShowForm(false)} onCreated={(text) => { setShowForm(false); setNotice(text); setFilter("open"); }} />}
+      {showForm && <ReceivableForm onClose={() => setShowForm(false)} onCreated={(text) => { setShowForm(false); setNotice(text); setClient(""); setFilter("all"); }} />}
 
       <section className="dash-card">
         <header className="dash-card-head">
-          <h2>Contas a receber</h2>
+          <h2>Contas a receber · extrato por cliente</h2>
           {!showForm && <button type="button" className="primary-button compact-button" onClick={() => { setShowForm(true); setNotice(""); }}><Plus size={15} aria-hidden="true" />&nbsp;Nova conta a receber</button>}
         </header>
         <p className="muted">As parcelas dos orçamentos aprovados entram aqui sozinhas. Use “Nova conta a receber” para o que não passa por orçamento: venda de sucata, aluguel, reembolso. Boletos descontados no banco aparecem em outra cor.</p>
         <div className="fin-toolbar">
           <div className="segmented-glass ck-seg" role="radiogroup" aria-label="Situação">
-            {([["late", "Vencidos"], ["week", "Próximos 7 dias"], ["open", "A vencer"], ["discounted", "Descontados"], ["paid", "Recebidos"], ["all", "Todos"]] as const).map(([id, text]) => <button key={id} type="button" role="radio" aria-checked={filter === id} onClick={() => setFilter(id)}>{text}</button>)}
+            {([["late", "Vencidos"], ["week", "Próximos 7 dias"], ["open", "A vencer"], ["discounted", "Antecipados"], ["paid", "Recebidos"], ["all", "Todos"]] as const).map(([id, text]) => <button key={id} type="button" role="radio" aria-checked={filter === id} onClick={() => setFilter(id)}>{text}</button>)}
           </div>
           <div className="fin-bank"><span className="muted">Receber na conta</span><BankPicker value={bankId} onChange={setBankId} label="Conta para recebimento" /></div>
         </div>
         {notice && <p className="erp-notice" role="status">{notice}</p>}
-        {error && <p className="auth-error" role="alert">{error}</p>}
+        <div className="fin-toolbar fin-filters">
+          <label className="field">Cliente do extrato<select value={client} onChange={(event) => { setClient(event.target.value); setLimit(50); }}>
+            <option value="">Todos os clientes</option>{clients.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+          </select></label>
+          <button type="button" className="secondary-button compact-secondary" onClick={() => setReport({
+            title: "Contas a receber", subtitle: `${list.length} título(s) · ${clients.find(([key]) => key === client)?.[1] ?? "Recorte selecionado"}`,
+            tables: [{ columns: ["Cliente", "Título", "Vencimento", "Situação", "Original", "Baixa ou antecipação", "Líquido"], rows: list.map((item) => {
+              const saved = receipts.get(item.key);
+              const batch = anticipation.get(item.key);
+              const account = saved?.settlement?.cashAccount ? CASH_ACCOUNTS[saved.settlement.cashAccount] : bankName(batch?.bank ?? saved?.bank);
+              const net = saved?.amount ?? batch?.titles.find((row) => row.key === item.key)?.net ?? (item.paidAt ? item.amount : undefined);
+              return [item.customer, titleRef(item), dateBr(item.dueDate), labels[item.state], money(item.amount),
+                [dateBr(batch?.date ?? item.paidAt), account, saved?.settlement?.method].filter(Boolean).join(" · "), net === undefined ? "–" : money(net)];
+            }), total: ["Total nominal", "", "", "", money(sum(list)), "", ""] }],
+          })}>Visualizar relatório</button>
+        </div>
+        <TitleSearch value={advanced} onChange={(value) => { setAdvanced(value); setLimit(50); }} />
+        {client && <p>{list.length} títulos no filtro · Total nominal {money(sum(list))}</p>}
         {list.length === 0 ? <p className="muted">Nenhum título nesta situação.</p> : (
           <ul className="title-list is-readonly fin-list">
-            {list.map((item) => (
+            {list.slice(0, limit).map((item) => (
               <li key={item.key} className={`is-${item.state}`}>
                 <div>
-                  <span className="title-main"><strong>{item.customer}</strong><small>{item.description ? `Avulsa · ${item.description}` : `#${item.quoteNumber} · parcela ${item.number}/${item.of}`} · vence {dateBr(item.dueDate)}{item.state === "paid" && item.paidAt ? ` · recebido em ${dateBr(item.paidAt)}` : ""}</small></span>
+                  <button type="button" className="title-main fin-row-open" onClick={() => setDetailKey(item.key)} aria-label={`Abrir ${item.customer}, ${money(item.amount)}`}><strong>{item.customer}</strong><small>{item.description ? `Avulsa · ${item.description}` : `#${item.quoteNumber} · parcela ${item.number}/${item.of}`} · vence {dateBr(item.dueDate)}{item.state === "paid" && item.paidAt ? ` · recebido em ${dateBr(item.paidAt)}` : ""}</small></button>
                   <Chip tone={item.state === "paid" ? "good" : item.state === "late" ? "bad" : item.state === "discounted" ? "info" : "muted"}>{labels[item.state]}</Chip>
                   <strong>{money(item.amount)}</strong>
-                  {(item.state === "open" || item.state === "late") ? (
-                    <span className="fin-actions">
+                  <span className="fin-actions">
+                    {(item.state === "open" || item.state === "late") && <>
                       <button type="button" className="link-button" onClick={() => setPix({ customer: item.customer, amount: item.amount, key: item.key })}><QrCode size={14} aria-hidden="true" /> Pix</button>
-                      <button type="button" className="secondary-button compact-secondary" disabled={busy !== null} onClick={() => void receive(item.key)}>{busy === item.key ? "Baixando…" : "Dar baixa"}</button>
-                    </span>
-                  ) : <span className="fin-done">{item.state === "paid" ? <CheckCircle2 size={15} aria-hidden="true" /> : null}</span>}
+                      <button type="button" className="secondary-button compact-secondary" onClick={() => setReceiptKey(item.key)}>Dar baixa</button>
+                    </>}
+                  </span>
                 </div>
               </li>
             ))}
           </ul>
         )}
+        {list.length > limit && <button type="button" className="secondary-button fin-more" onClick={() => setLimit(limit + 50)}>Mostrar mais títulos</button>}
       </section>
+      {report && <ReportViewer report={report} onClose={() => setReport(undefined)} />}
+      {detail && <Dialog title={detail.customer} onClose={() => setDetailKey("")}>
+        <p>{titleRef(detail)} · Vencimento {dateBr(detail.dueDate)} · {labels[detail.state]} · {money(detail.amount)}</p>
+        {quote?.approved_at && <p>Venda aprovada em {dateBr(quote.approved_at)}</p>}
+        {items.length > 0 && <table className="data-table"><thead><tr><th>Produto da venda</th><th>Quantidade</th><th>Total</th></tr></thead>
+          <tbody>{items.map((item) => <tr key={item.id}><td>{item.product_name_snapshot}</td><td>{item.quantity}</td><td>{money(item.product_subtotal)}</td></tr>)}</tbody></table>}
+        {discounted ? <p>Antecipado em {dateBr(discounted.date)} · {bankName(discounted.bank)} · A baixa comum permanece bloqueada.</p>
+          : <SettlementHistory settlement={receipt?.settlement} bank={bankName(receipt?.bank)} date={detail.paidAt} />}
+        {!!receipt?.pendingIds?.length && <p>{receipt.pendingIds.filter((id) => tables.erp.cash?.pending.find((row) => row.id === id)?.clearedOn).length} de {receipt.pendingIds.length} parcela(s) compensada(s). Confira em Caixa e relatórios.</p>}
+        <div className="dialog-actions"><button type="button" className="secondary-button" onClick={() => setDetailKey("")}>Fechar</button></div>
+      </Dialog>}
+      {receiving && <SettlementDialog title={`Baixa · ${receiving.customer}`} amount={receiving.amount} defaultBank={bankId}
+        onClose={() => setReceiptKey("")} onSubmit={async (bank, values) => {
+          const saved = await receiveTitle(receiving.key, bank, values);
+          setNotice(`Recebimento registrado · ${money(saved.amount)}.`); setFilter("paid");
+        }} />}
       {pix && (
         <Sheet variant="center" label="Cobrança Pix" onClose={() => setPix(null)}>
           <div className="kpi-sheet pix-sheet">
-            <header className="kpi-sheet-hero tone-lime"><span className="kpi-sheet-icon"><QrCode size={26} /></span><div><p>Cobrança Pix · {pix.customer}</p><strong>{money(pix.amount)}</strong><small>QR Code dinâmico enviado direto ao cliente</small></div></header>
+            <header className="kpi-sheet-hero tone-lime"><span className="kpi-sheet-icon"><QrCode size={26} /></span><div><p>Cobrança Pix · {pix.customer}</p><strong>{money(pix.amount)}</strong><small>Exemplo visual de cobrança</small></div></header>
             <FakeQr seed={pix.key} />
-            <p className="muted">Pix copia-e-cola e QR Code gerados pela integração bancária. Quando o cliente paga, o extrato concilia sozinho, ou use “Dar baixa” para registrar na hora.</p>
+            <p className="muted">A demonstração mostra como a cobrança apareceria. Use “Dar baixa” para testar o registro de recebimento.</p>
           </div>
         </Sheet>
       )}

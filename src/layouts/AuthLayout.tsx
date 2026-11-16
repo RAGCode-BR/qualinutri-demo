@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import logoUrl from "../assets/qualinutri-logo.png";
+import logoUrl from "../assets/qualinutri-logo.svg";
 
 type AuthLayoutProps = {
   titleId?: string;

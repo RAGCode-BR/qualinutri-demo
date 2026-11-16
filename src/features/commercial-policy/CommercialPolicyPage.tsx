@@ -5,19 +5,20 @@ import { useAuth } from "../../app/AuthProvider";
 import { useCommercialData } from "../../app/CommercialDataProvider";
 import { savePolicySection } from "../../demo/services/policyService";
 import type { PolicySection } from "../../types/commercial";
+import { DocViewer } from "../../components/demo/docs/DocViewer";
 
-function escape(text: string) {
-  return text.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]!));
-}
-
-/** Abre a política numa janela própria e chama a impressão (salvar em PDF para enviar ao cliente ou à equipe). */
-function printPolicy(sections: PolicySection[], version: string) {
-  const body = sections.map((section) => `<section><h2>${escape(section.title)}${section.pending ? ' <small>(a definir)</small>' : ""}</h2><p>${escape(section.content)}</p></section>`).join("");
-  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Política comercial ${escape(version)}</title><style>body{font:13px/1.55 system-ui,sans-serif;color:#0e2116;margin:40px;max-width:760px}h1{font-size:22px;margin:0}header p{color:#4a5850;margin:4px 0 24px}h2{font-size:15px;margin:18px 0 4px}h2 small{color:#7a5300;font-weight:600}p{margin:0}footer{margin-top:28px;color:#5f7366;font-size:11px}</style></head><body><header><h1>Política comercial</h1><p>Qualinutri Ind. Com. de Nutrição Animal Ltda · Versão ${escape(version)}</p></header>${body}<footer>Emitido em ${new Date().toLocaleString("pt-BR")}.</footer><script>window.onload=()=>window.print()</script></body></html>`;
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
+/** A política como documento A4 no visualizador: ver na tela, ver/baixar o PDF ou imprimir. */
+function PolicyDocument({ sections, version, onClose }: { sections: PolicySection[]; version: string; onClose: () => void }) {
+  return (
+    <DocViewer title={`Política comercial · versão ${version}`} subtitle="Qualinutri Ind. Com. de Nutrição Animal Ltda" onClose={onClose}
+      actions={<div className="doc-viewer-actions"><button type="button" className="primary-button compact-button" onClick={() => window.print()}><Printer size={15} aria-hidden="true" />&nbsp;Imprimir</button></div>}>
+      <article className="simple-doc">
+        <header><h1>Política comercial</h1><p>Qualinutri Ind. Com. de Nutrição Animal Ltda · Versão {version}</p></header>
+        {sections.map((section) => <section key={section.title}><h2>{section.title}{section.pending && <small> (a definir)</small>}</h2><p>{section.content}</p></section>)}
+        <footer>Emitido em {new Date().toLocaleString("pt-BR")}.</footer>
+      </article>
+    </DocViewer>
+  );
 }
 
 export function CommercialPolicyPage() {
@@ -28,6 +29,7 @@ export function CommercialPolicyPage() {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -92,7 +94,8 @@ export function CommercialPolicyPage() {
           <span>Juara, MT</span>
           <a href="tel:+556635562300">(66) 3556-2300</a>
         </address>
-        <button type="button" className="secondary-button compact-secondary policy-print" onClick={() => printPolicy(policySections, policyVersion)}><Printer size={15} aria-hidden="true" />&nbsp;Imprimir / PDF</button>
+        <button type="button" className="secondary-button compact-secondary policy-print" onClick={() => setViewing(true)}><Printer size={15} aria-hidden="true" />&nbsp;Ver / imprimir PDF</button>
+        {viewing && <PolicyDocument sections={policySections} version={policyVersion} onClose={() => setViewing(false)} />}
         {!isAdmin && <p className="muted">Só administradores editam a política.</p>}
       </Panel>
     </div>

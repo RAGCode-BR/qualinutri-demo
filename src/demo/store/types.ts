@@ -2,7 +2,7 @@ import type { CommercialData } from "../../types/commercial";
 import type { Database } from "../../types/database.types";
 import type { UserProfile } from "../../types/auth";
 import type { ChecklistTables } from "../checklist/types";
-import type { ErpTables } from "../erp/types";
+import type { ErpTables, Settlement } from "../erp/types";
 
 export type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 
@@ -21,6 +21,15 @@ export type Payable = {
   dueDate: string;
   amount: number;
   paidAt: string | null;
+  issuedOn?: string;
+  createdAt?: string;
+  createdBy?: string;
+  document?: string;
+  documentType?: string;
+  costCenter?: string;
+  note?: string;
+  installment?: { number: number; total: number; group: string };
+  settlement?: Settlement;
   /** Conta de onde saiu o pagamento (quando pago pelo sistema). */
   bank?: "sicoob" | "itau" | null;
 };

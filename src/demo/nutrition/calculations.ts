@@ -32,18 +32,26 @@ export function validateFeed(feed: NutritionFeed) {
   }
 }
 
+export function recipeFeeds(diet: NutritionDiet, feeds: NutritionFeed[]): NutritionFeed[] {
+  const analyses = new Map(diet.ingredients.map((item) => [item.feedId, item.analysis]));
+  return feeds.map((feed) => {
+    const analysis = analyses.get(feed.id);
+    return analysis ? { ...feed, ...analysis } : feed;
+  });
+}
+
 function validateDiet(diet: NutritionDiet, feeds: NutritionFeed[], requireTotal: boolean) {
   if (!diet.id.trim() || !diet.name.trim()) throw new NutritionError("Informe o identificador e o nome da dieta.");
   if (diet.basis !== "natural" && diet.basis !== "dry") throw new NutritionError("Selecione matéria natural ou matéria seca.");
   if (diet.costBasis !== undefined && diet.costBasis !== "natural" && diet.costBasis !== "dry") throw new NutritionError("Selecione a base natural ou seca para o custo.");
   numberInRange(diet.batchKg, "Peso do lote (kg naturais)", 0.001);
-  numberInRange(diet.dryMatterIntakeKg, "Consumo de matéria seca por animal/dia", 0.001);
+  numberInRange(diet.dryMatterIntakeKg, "Consumo de matéria seca por animal/dia", diet.factoryBatch ? 0 : 0.001);
   numberInRange(diet.heads, "Número de animais", 1);
   numberInRange(diet.days, "Número de dias", 1);
   if (!Number.isSafeInteger(diet.heads) || !Number.isSafeInteger(diet.days)) throw new NutritionError("Animais e dias devem ser números inteiros.");
   const map = new Map<string, NutritionFeed>();
-  for (const feed of feeds) {
-    validateFeed(feed);
+  for (const feed of recipeFeeds(diet, feeds)) {
+    if (diet.ingredients.some((item) => item.feedId === feed.id)) validateFeed(feed);
     if (map.has(feed.id)) throw new NutritionError(`Alimento repetido: ${feed.name}.`);
     map.set(feed.id, feed);
   }
@@ -60,6 +68,7 @@ function validateDiet(diet: NutritionDiet, feeds: NutritionFeed[], requireTotal:
   for (const bound of diet.nutrientBounds) {
     if (!bound.nutrient.trim() || nutrientKeys.has(bound.nutrient)) throw new NutritionError("Há restrições de nutrientes sem nome ou repetidas.");
     nutrientKeys.add(bound.nutrient);
+    if (bound.basis !== undefined && bound.basis !== "natural" && bound.basis !== "dry") throw new NutritionError("Base de nutriente inválida.");
     bounds(bound.min, bound.max, bound.nutrient, percentageKeys.has(bound.nutrient) ? 100 : Number.MAX_SAFE_INTEGER);
   }
   if (requireTotal && Math.abs(diet.ingredients.reduce((sum, item) => sum + item.percentage, 0) - 100) > TOLERANCE) {
@@ -85,7 +94,7 @@ function validateDiet(diet: NutritionDiet, feeds: NutritionFeed[], requireTotal:
 function constraint(kind: DietConstraintResult["kind"], key: string, value: number, bound: NutrientBound | RationIngredient): DietConstraintResult {
   const min = "feedId" in bound ? bound.minPct : bound.min;
   const max = "feedId" in bound ? bound.maxPct : bound.max;
-  return { kind, key, value, min, max, satisfied: Number.isFinite(value) && (min === undefined || value >= min - TOLERANCE) && (max === undefined || value <= max + TOLERANCE) };
+  return { kind, key, value, min, max, basis: "nutrient" in bound ? bound.basis ?? "dry" : undefined, satisfied: Number.isFinite(value) && (min === undefined || value >= min - TOLERANCE) && (max === undefined || value <= max + TOLERANCE) };
 }
 
 export function calculateDiet(diet: NutritionDiet, feeds: NutritionFeed[]): DietCalculation {
@@ -119,9 +128,10 @@ export function calculateDiet(diet: NutritionDiet, feeds: NutritionFeed[]): Diet
     if (active.some(({ feed }) => !Object.hasOwn(feed.nutrients, key))) incompleteNutrients.push(key);
     else nutrients[key] = ingredients.reduce((sum, item) => sum + item.dryPct / 100 * (map.get(item.feedId)!.nutrients[key] ?? 0), 0);
   }
+  const nutrientsNatural = Object.fromEntries(Object.entries(nutrients).map(([key, amount]) => [key, amount * dryFraction]));
   const constraints = [
     ...diet.ingredients.filter((item) => item.minPct !== undefined || item.maxPct !== undefined).map((item) => constraint("ingredient", item.feedId, item.percentage, item)),
-    ...diet.nutrientBounds.filter((bound) => bound.min !== undefined || bound.max !== undefined).map((bound) => constraint("nutrient", bound.nutrient, nutrients[bound.nutrient] ?? Number.NaN, bound)),
+    ...diet.nutrientBounds.filter((bound) => bound.min !== undefined || bound.max !== undefined).map((bound) => constraint("nutrient", bound.nutrient, (bound.basis === "natural" ? nutrientsNatural : nutrients)[bound.nutrient] ?? Number.NaN, bound)),
   ];
   const sum = (key: "batchCost" | "costPerHeadDay" | "totalCost") => ingredients.reduce((total, item) => total + item[key], 0);
   const batchCost = sum("batchCost");
@@ -137,7 +147,7 @@ export function calculateDiet(diet: NutritionDiet, feeds: NutritionFeed[]): Diet
     costPerTonNatural: batchCost / diet.batchKg * 1000, costPerTonDry: batchCost / (diet.batchKg * dryFraction) * 1000,
     costPerHeadDay, totalNaturalKg: naturalKgPerHeadDay * animalDays,
     totalDryKg: diet.dryMatterIntakeKg * animalDays, totalCost: sum("totalCost"),
-    nutrients, incompleteNutrients, constraints, compliant: constraints.every((item) => item.satisfied),
+    nutrients, nutrientsNatural, incompleteNutrients, constraints, compliant: constraints.every((item) => item.satisfied),
     economics: hasRevenue ? { revenuePerHeadDay, otherCostPerHeadDay, grossMarginPerHeadDay: revenuePerHeadDay - costPerHeadDay - otherCostPerHeadDay, totalRevenue: revenuePerHeadDay * animalDays, totalGrossMargin: (revenuePerHeadDay - costPerHeadDay - otherCostPerHeadDay) * animalDays } : null,
   };
 }
@@ -155,8 +165,8 @@ export function optimizeDiet(diet: NutritionDiet, feeds: NutritionFeed[]): DietO
   const costBasis = diet.costBasis ?? "dry";
   const model: Model = { optimize: "cost", opType: "min", constraints: { total: { equal: 1 } }, variables: {} };
   diet.nutrientBounds.forEach((bound, index) => {
-    if (bound.min !== undefined) model.constraints[`nutrient_min_${index}`] = { min: costBasis === "dry" ? bound.min : 0 };
-    if (bound.max !== undefined) model.constraints[`nutrient_max_${index}`] = { max: costBasis === "dry" ? bound.max : 0 };
+    if (bound.min !== undefined) model.constraints[`nutrient_min_${index}`] = { min: costBasis === (bound.basis ?? "dry") ? bound.min : 0 };
+    if (bound.max !== undefined) model.constraints[`nutrient_max_${index}`] = { max: costBasis === (bound.basis ?? "dry") ? bound.max : 0 };
   });
   selected.forEach(({ item }, index) => {
     if (item.minPct !== undefined) model.constraints[`min_${index}`] = { min: diet.basis === costBasis ? item.minPct / 100 : 0 };
@@ -167,8 +177,13 @@ export function optimizeDiet(diet: NutritionDiet, feeds: NutritionFeed[]): DietO
     const coefficients: Record<string, number> = { total: 1, cost: costBasis === "natural" ? feed.pricePerKgNatural : feed.pricePerKgNatural / dm };
     diet.nutrientBounds.forEach((bound, boundIndex) => {
       const value = feed.nutrients[bound.nutrient] ?? 0;
-      if (bound.min !== undefined) coefficients[`nutrient_min_${boundIndex}`] = costBasis === "dry" ? value : dm * (value - bound.min);
-      if (bound.max !== undefined) coefficients[`nutrient_max_${boundIndex}`] = costBasis === "dry" ? value : dm * (value - bound.max);
+      const basis = bound.basis ?? "dry";
+      const coefficient = (limit: number) => {
+        if (basis === costBasis) return basis === "dry" ? value : value * dm;
+        return basis === "dry" ? dm * (value - limit) : value - limit / dm;
+      };
+      if (bound.min !== undefined) coefficients[`nutrient_min_${boundIndex}`] = coefficient(bound.min);
+      if (bound.max !== undefined) coefficients[`nutrient_max_${boundIndex}`] = coefficient(bound.max);
     });
     selected.forEach(({ item }, boundIndex) => {
       const own = index === boundIndex ? 1 : 0;

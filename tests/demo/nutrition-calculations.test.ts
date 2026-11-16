@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { calculateDiet, optimizeDiet, validateFeed } from "../../src/demo/nutrition/calculations";
 import type { NutritionDiet, NutritionFeed } from "../../src/demo/nutrition/types";
 
@@ -159,4 +159,25 @@ it("preço importado ausente preserva análise e impede custo mínimo com preço
   const result = optimizeDiet(excluded, pending);
   expect(result.status).toBe("optimal");
   if (result.status === "optimal") expect(result.calculation.costPerKgNatural).toBeCloseTo(2);
+});
+
+test("restringe proteína na matéria natural ao minimizar custo em qualquer base", () => {
+  const feeds = [
+    { id: "cheap", name: "A", dryMatterPct: 50, pricePerKgNatural: 1, nutrients: { crudeProtein: 20 } },
+    { id: "rich", name: "B", dryMatterPct: 100, pricePerKgNatural: 3, nutrients: { crudeProtein: 30 } },
+  ];
+  for (const costBasis of ["natural", "dry"] as const) {
+    const formula: NutritionDiet = {
+      id: "factory", name: "Batida", basis: "natural", costBasis, factoryBatch: true,
+      ingredients: [{ feedId: "cheap", percentage: 100 }, { feedId: "rich", percentage: 0 }],
+      dryMatterIntakeKg: 0, heads: 1, days: 1, batchKg: 600,
+      nutrientBounds: [{ nutrient: "crudeProtein", min: 15, basis: "natural" }],
+    };
+    const outcome = optimizeDiet(formula, feeds);
+    expect(outcome.status).toBe("optimal");
+    if (outcome.status !== "optimal") throw new Error(outcome.message);
+    expect(outcome.calculation.ingredients[1].naturalPct).toBeCloseTo(25, 5);
+    expect(outcome.calculation.nutrientsNatural.crudeProtein).toBeCloseTo(15, 5);
+    expect(outcome.calculation.batchCost).toBeCloseTo(900, 4);
+  }
 });

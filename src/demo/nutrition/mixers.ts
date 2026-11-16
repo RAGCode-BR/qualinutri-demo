@@ -79,6 +79,15 @@ export function applyMixerWeights(recipe: Recipe, feeds: NutritionFeed[]): Recip
   const plan = calculateMixerPlan(recipe, feeds);
   if (plan.warnings.length > 0) throw new NutritionError("Ajuste as capacidades dos misturadores antes de aplicar as pesagens.");
   const actual = new Map(plan.ingredients.map((row) => [row.feedId, row.actualKg]));
+  if (recipe.factoryBatch && recipe.basis === "dry") {
+    const dryWeights = recipe.ingredients.map((ingredient) => {
+      const dm = ingredient.analysis?.dryMatterPct ?? feeds.find((feed) => feed.id === ingredient.feedId)!.dryMatterPct;
+      return (actual.get(ingredient.feedId) ?? 0) * dm / 100;
+    });
+    const totalDry = dryWeights.reduce((sum, kg) => sum + kg, 0);
+    return { ...recipe, batchKg: plan.totalKg, mixer: mixerSettings(recipe),
+      ingredients: recipe.ingredients.map((ingredient, index) => ({ ...ingredient, percentage: 100 * dryWeights[index] / totalDry })) };
+  }
   let lastPositiveIndex = 0;
   recipe.ingredients.forEach((ingredient, index) => {
     if ((actual.get(ingredient.feedId) ?? 0) > 0) lastPositiveIndex = index;

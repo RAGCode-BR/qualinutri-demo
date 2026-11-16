@@ -16,7 +16,7 @@ import { storeEvidence } from "../../demo/checklist/evidence";
 import type { ChecklistRecord, EvidenceRef } from "../../demo/checklist/types";
 import { EvidenceThumb, Lightbox, StatusChip, formatDateTime } from "../checklist/shared";
 import { RecordDialog } from "../checklist/RecordDialog";
-import { printTabReport } from "../checklist/report";
+import { TabReportViewer, type TabReportRequest } from "../checklist/report";
 
 type Section = "inspection" | "requests" | "profit" | "patterns";
 
@@ -196,6 +196,7 @@ function Inspections({ onGoRequests }: { onGoRequests: () => void }) {
   const now = today();
   const [dialog, setDialog] = useState<{ target?: string | null; record?: ChecklistRecord } | null>(null);
   const [repair, setRepair] = useState<RepairDraft | null>(null);
+  const [report, setReport] = useState<TabReportRequest | null>(null);
   const [notice, setNotice] = useState("");
   const targets = targetsFor("fleetCheck", tables);
   const records = tables.checklist.records.filter((record) => record.tab === "fleetCheck").sort((a, b) => b.date.localeCompare(a.date));
@@ -220,7 +221,7 @@ function Inspections({ onGoRequests }: { onGoRequests: () => void }) {
         <Stat index={2} label="Veículos sem conferência na semana" value={overdue.size} format="number" tone="warn" caption={`de ${targets.length} na frota`} />
       </section>
       <div className="erp-actions-row is-end">
-        <button type="button" className="secondary-button compact-secondary" onClick={() => printTabReport("fleetCheck", recent, tables, "últimos 30 dias")}><Printer size={15} aria-hidden="true" />&nbsp;Relatório</button>
+        <button type="button" className="secondary-button compact-secondary" onClick={() => setReport({ tabId: "fleetCheck", records: recent, periodLabel: "últimos 30 dias" })}><Printer size={15} aria-hidden="true" />&nbsp;Relatório</button>
         {canWrite && <button type="button" className="primary-button compact-button" onClick={() => setDialog({ target: null })}><Plus size={15} aria-hidden="true" />&nbsp;Nova conferência</button>}
       </div>
       {notice && <p className="erp-notice" role="status">{notice}</p>}
@@ -269,6 +270,7 @@ function Inspections({ onGoRequests }: { onGoRequests: () => void }) {
           {records.length === 0 && <p className="drawer-empty">Nenhuma conferência ainda.</p>}
         </div>
       </section>
+      {report && <TabReportViewer request={report} tables={tables} onClose={() => setReport(null)} />}
       {dialog && <RecordDialog tabId="fleetCheck" record={dialog.record} presetTarget={dialog.target} readOnly={!canWrite} onSaved={(record) => { setNotice(""); onSaved(record); }} onClose={() => setDialog(null)} />}
       {repair && <NewRequest initial={repair} onClose={() => setRepair(null)} onCreated={() => setNotice("Pedido de conserto enviado para a gestão aprovar (veja em Pedidos de conserto e em Aprovações).")} />}
     </div>

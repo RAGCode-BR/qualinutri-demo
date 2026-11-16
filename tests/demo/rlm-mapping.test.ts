@@ -106,3 +106,41 @@ describe("RLM normalized mapping", () => {
     expect(result.feeds[0].notes).toMatch(/Preço pendente/);
   });
 });
+
+it("abre um concentrado com os preços, análises e limites da fórmula de origem", () => {
+  const archive = sample();
+  const groups = (name: string) => archive.tables.find((table) => table.name === name)!.rows;
+  Object.assign(groups("Dieta.xml")[0], { DIETA_TIPO: "3", RES_CONS: "0" });
+  Object.assign(groups("AlimDieta.xml")[0], {
+    ALIMDIETA_ID: "70", ALIMDIETA_CUSTOMO: "950", ALIMDIETA_RESTR: "T", ALIMDIETA_MIN: "50", ALIMDIETA_MAX: "100",
+  });
+  archive.tables.push({ name: "NutrAlimDieta.xml", fields: [], rows: [
+    { DIETA_ID: "2", ALIMDIETA_ID: "70", NUTR_ID: "1", NUTRALIMDIETA_QT: "85" },
+    { DIETA_ID: "2", ALIMDIETA_ID: "70", NUTR_ID: "6", NUTRALIMDIETA_QT: "22" },
+  ] }, { name: "NutrDieta.xml", fields: [], rows: [
+    { DIETA_ID: "2", NUTR_ID: "6", NUTRDIETA_EXIGUSR: "T", NUTRDIETA_EXIGUSRMIN: "18", NUTRDIETA_UNIDEXIG: "1" },
+  ] });
+  const mapped = mapRlmArchive(archive, "source");
+  const recipe = convertImportedDiet(mapped.diets[0], mapped.feeds, undefined, mapped.dictionaries);
+  expect(recipe).toMatchObject({ kind: "concentrado", factoryBatch: true, dryMatterIntakeKg: 0,
+    nutrientBounds: [{ nutrient: "crudeProtein", min: 18, basis: "natural" }],
+    ingredients: [{ percentage: 100, minPct: 50, maxPct: 100, analysis: {
+      dryMatterPct: 85, pricePerKgNatural: 0.95, nutrients: { crudeProtein: 22 },
+    } }],
+  });
+  expect(mapped.feeds[0]).toMatchObject({ dryMatterPct: 90, nutrients: { crudeProtein: 18 } });
+});
+
+it("preserva monensina acima de 100 ppm na biblioteca e na análise da fórmula", () => {
+  const archive = sample();
+  const groups = (name: string) => archive.tables.find((table) => table.name === name)!.rows;
+  groups("Nutr.xml").push({ NUTR_ID: "777", NUTR_FIELDNAME: "MONENSINA", NUTR_NOME: "Monensina", NUTR_UNID_PTB: "PPM", NUTR_UNIDARMZ: "1" });
+  groups("NutrAlim.xml").push({ ALIM_ID: "5", NUTR_ID: "777", NUTRALIM_QT: "250" });
+  Object.assign(groups("Dieta.xml")[0], { DIETA_TIPO: "3" });
+  Object.assign(groups("AlimDieta.xml")[0], { ALIMDIETA_ID: "70" });
+  archive.tables.push({ name: "NutrAlimDieta.xml", fields: [], rows: [{ DIETA_ID: "2", ALIMDIETA_ID: "70", NUTR_ID: "777", NUTRALIMDIETA_QT: "260" }] });
+  const mapped = mapRlmArchive(archive, "source");
+  expect(mapped.feeds[0].nutrients.monensin).toBe(250);
+  const recipe = convertImportedDiet(mapped.diets[0], mapped.feeds, undefined, mapped.dictionaries);
+  expect(recipe.ingredients[0].analysis?.nutrients.monensin).toBe(260);
+});

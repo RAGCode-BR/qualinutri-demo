@@ -1,4 +1,4 @@
-import logoUrl from "../../assets/qualinutri-logo.png";
+import logoUrl from "../../assets/qualinutri-logo.svg";
 import { cell, type ReportResult } from "../../demo/reports/core";
 import { formatValue } from "../../demo/reports/export";
 import { ReportChart } from "./ReportCharts";

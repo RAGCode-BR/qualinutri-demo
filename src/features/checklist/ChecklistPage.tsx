@@ -14,7 +14,7 @@ import { useCountUp } from "../../components/demo/useCountUp";
 import { RecordDialog } from "./RecordDialog";
 import { NewRequest, repairDraftFrom, type RepairDraft } from "../erp/FleetPage";
 import { RegistryView } from "./RegistryView";
-import { printTabReport } from "./report";
+import { TabReportViewer, type TabReportRequest } from "./report";
 import { EvidenceThumb, Lightbox, Ring, StatusChip, formatDateTime, toneFor } from "./shared";
 
 type View = "panel" | "registry" | ChecklistTabId;
@@ -206,6 +206,7 @@ function TabView({ tabId, initialStatus, canWrite, onNew, onOpenRecord }: TabVie
   const now = today();
   const [status, setStatus] = useState<RecordStatus | "all">(initialStatus);
   const [days, setDays] = useState<30 | 90 | 0>(90);
+  const [report, setReport] = useState<TabReportRequest | null>(null);
   const [query, setQuery] = useState("");
   const [target, setTarget] = useState("");
   const [mode, setMode] = useState<"list" | "board" | "targets">(tab.stages ? "board" : "list");
@@ -255,7 +256,7 @@ function TabView({ tabId, initialStatus, canWrite, onNew, onOpenRecord }: TabVie
           <span className="ck-rule"><AlertTriangle size={13} aria-hidden="true" /> Fora de conformidade: {tab.rule}</span>
         </div>
         <div className="ck-tab-actions">
-          <button type="button" className="secondary-button compact-secondary" onClick={() => printTabReport(tabId, records, tables, days ? `últimos ${days} dias` : "todo o histórico")}><Printer size={16} aria-hidden="true" />&nbsp;Relatório</button>
+          <button type="button" className="secondary-button compact-secondary" onClick={() => setReport({ tabId, records, periodLabel: days ? `últimos ${days} dias` : "todo o histórico" })}><Printer size={16} aria-hidden="true" />&nbsp;Relatório</button>
           <button type="button" className="secondary-button compact-secondary" onClick={() => setDrawer(true)}>Exportar</button>
           {canWrite && <button type="button" className="primary-button compact-button" onClick={() => onNew(target || null)}><Plus size={16} aria-hidden="true" />&nbsp;Registrar</button>}
         </div>
@@ -379,6 +380,7 @@ function TabView({ tabId, initialStatus, canWrite, onNew, onOpenRecord }: TabVie
       )}
 
       {preview && <Lightbox url={preview.url} type={preview.type} onClose={() => setPreview(null)} />}
+      {report && <TabReportViewer request={report} tables={tables} onClose={() => setReport(null)} />}
       {drawer && (
         <DetailDrawer
           selection={{

@@ -4,6 +4,9 @@ export type Recipe = NutritionDiet & {
   kind: "corte" | "leite" | "concentrado" | "usuario";
   customerId?: string;
   lot?: string;
+  indication?: string;
+  directions?: string;
+  rlmReference?: { fileName: string; costPerTonNatural?: number; dryMatterPct?: number };
   mixer?: {
     capacityKg: [number, number, number];
     assignment: Record<string, 1 | 2 | 3>;
@@ -11,7 +14,7 @@ export type Recipe = NutritionDiet & {
   };
 };
 
-export type SourceNutrient = { id: string; code: string; name: string; unit: string; storage: string };
+export type SourceNutrient = { id: string; code: string; name: string; unit: string; storage: string; fileName?: string };
 export type ImportedDiet = {
   id: string;
   name: string;

@@ -9,6 +9,7 @@ import { mulberry32 } from "./random";
 import { buildOperations } from "./operations";
 import { buildChecklist } from "./checklist";
 import { buildErp } from "./erp";
+import { seedCash } from "../erp/cash";
 import { emptyErp } from "../erp/types";
 
 /** Gera todos os dados fictícios da demonstração, sempre iguais para o mesmo dia. */
@@ -39,5 +40,6 @@ export function buildSeed(today: Date): DemoTables {
   };
   tables.checklist = buildChecklist({ rng, today, tables });
   tables.erp = buildErp({ rng, today, tables });
+  tables.erp.cash = seedCash(today);
   return tables;
 }

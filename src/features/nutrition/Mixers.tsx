@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { Panel } from "../../components/Panel";
 import { ScrollableTable } from "../../components/ScrollableTable";
 import { applyMixerWeights, calculateMixerPlan, mixerSettings, type MixerPlan, type MixerSettings, type MixerStage } from "../../demo/nutrition/mixers";
-import type { Recipe } from "../../demo/nutrition/model";
-import type { NutritionFeed } from "../../demo/nutrition/types";
+import type { Recipe, SourceNutrient } from "../../demo/nutrition/model";
+import { NutritionBalance, NutritionStatus } from "./NutritionBalance";
+import { calculateDiet } from "../../demo/nutrition/calculations";
+import type { DietCalculation, NutritionFeed } from "../../demo/nutrition/types";
 
 const formatKg = (value: number) => `${value.toLocaleString("pt-BR", { maximumFractionDigits: 4 })} kg`;
 const parseWeight = (value: string) => /^\d+(?:[.,]\d+)?$/.test(value.trim()) ? Number(value.trim().replace(",", ".")) : Number.NaN;
 
-function WeightInput({ label, value, optional = false, onChange, onValidity }: {
-  label: string; value: number | undefined; optional?: boolean; onChange: (next: number | undefined) => void; onValidity: (valid: boolean) => void;
+function WeightInput({ label, value, optional = false, minimum = 0, onChange, onValidity }: {
+  label: string; value: number | undefined; optional?: boolean; minimum?: number; onChange: (next: number | undefined) => void; onValidity: (valid: boolean) => void;
 }) {
   const [text, setText] = useState(value === undefined ? "" : String(value));
   const [error, setError] = useState("");
@@ -17,7 +19,7 @@ function WeightInput({ label, value, optional = false, onChange, onValidity }: {
   function commit() {
     if (optional && !text.trim()) { setError(""); onChange(undefined); return; }
     const next = parseWeight(text);
-    if (!Number.isFinite(next) || next < 0) { setError("Informe um peso válido em kg."); return; }
+    if (!Number.isFinite(next) || next < minimum) { setError("Informe um peso válido em kg."); return; }
     setError("");
     onChange(next);
   }
@@ -26,7 +28,7 @@ function WeightInput({ label, value, optional = false, onChange, onValidity }: {
       placeholder={optional ? "Usar peso nominal" : "0"} onChange={(event) => {
         const next = event.target.value;
         setText(next);
-        const valid = (optional && !next.trim()) || (Number.isFinite(parseWeight(next)) && parseWeight(next) >= 0);
+        const valid = (optional && !next.trim()) || (Number.isFinite(parseWeight(next)) && parseWeight(next) >= minimum);
         onValidity(valid);
       }}
       onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} />
@@ -34,14 +36,22 @@ function WeightInput({ label, value, optional = false, onChange, onValidity }: {
   </label>;
 }
 
-export function Mixers({ recipe, feeds, onChange }: { recipe: Recipe; feeds: NutritionFeed[]; onChange: (next: Recipe) => void }) {
+export function Mixers({ recipe, feeds, definitions, onChange }: { recipe: Recipe; feeds: NutritionFeed[]; definitions: SourceNutrient[]; onChange: (next: Recipe) => void }) {
   const [message, setMessage] = useState("");
   const [invalidFields, setInvalidFields] = useState<Record<string, boolean>>({});
   const invalidInput = Object.values(invalidFields).some(Boolean);
   const settings = mixerSettings(recipe);
   let plan: MixerPlan | null = null;
+  let before: DietCalculation | undefined;
+  let preview: DietCalculation | undefined;
   let problem = "";
-  try { plan = calculateMixerPlan(recipe, feeds); }
+  try {
+    plan = calculateMixerPlan(recipe, feeds);
+    before = calculateDiet(recipe, feeds);
+    if (!invalidInput && !plan.warnings.length && plan.ingredients.some((row) => Math.abs(row.nominalKg - row.actualKg) > 0.000001)) {
+      preview = calculateDiet(applyMixerWeights(recipe, feeds), feeds);
+    }
+  }
   catch (reason) { problem = reason instanceof Error ? reason.message : "Confira os dados da fórmula."; }
 
   function validity(key: string, valid: boolean) {
@@ -64,9 +74,9 @@ export function Mixers({ recipe, feeds, onChange }: { recipe: Recipe; feeds: Nut
     if (invalidInput) return;
     try {
       onChange(applyMixerWeights(recipe, feeds));
-      setMessage(recipe.basis === "dry"
+      setMessage(recipe.basis === "dry" && !recipe.factoryBatch
         ? "Pesagens aplicadas em matéria natural. Os limites de inclusão em matéria seca foram limpos. Confira os novos limites e o balanço nutricional."
-        : "Pesagens aplicadas. A fórmula foi atualizada em matéria natural.");
+        : "Pesagens aplicadas. Confira o balanço da fórmula atualizada.");
     } catch (reason) { setMessage(reason instanceof Error ? reason.message : "Não foi possível aplicar as pesagens."); }
   }
 
@@ -79,6 +89,8 @@ export function Mixers({ recipe, feeds, onChange }: { recipe: Recipe; feeds: Nut
           update({ ...settings, capacityKg });
         }} />)}
     </div>
+    <WeightInput label="Peso da batida (kg naturais)" minimum={0.001} value={recipe.batchKg} onValidity={(valid) => validity("batch", valid)}
+      onChange={(value) => { if (value && value > 0 && value !== recipe.batchKg) onChange({ ...recipe, batchKg: value, mixer: { ...settings, overrides: {} } }); }} />
     {problem && <p role="alert" className="warning-message">{problem}</p>}
     {plan && <>
       <h3>Distribuição e pesagem dos ingredientes</h3>
@@ -107,7 +119,13 @@ export function Mixers({ recipe, feeds, onChange }: { recipe: Recipe; feeds: Nut
       </section>)}
       {plan.warnings.map((warning) => <p key={warning} className="warning-message" role="alert">{warning}</p>)}
       <p>Peso final da batida: <strong>{formatKg(plan.totalKg)}</strong></p>
-      {recipe.basis === "dry" && <p className="warning-message">Ao aplicar as pesagens, a fórmula passa para matéria natural e os limites de inclusão em matéria seca são limpos para revisão.</p>}
+      {preview && before && <section>
+        <h3>Conferência da batida ajustada</h3>
+        <p>Matéria seca: {before.dryMatterPct.toFixed(2)}% → {preview.dryMatterPct.toFixed(2)}%. Custo por tonelada natural: {before.costPerTonNatural.toLocaleString("pt-BR")} → {preview.costPerTonNatural.toLocaleString("pt-BR")}.</p>
+        <NutritionStatus result={preview} />
+        <ScrollableTable><NutritionBalance result={preview} definitions={definitions} baseline={before} /></ScrollableTable>
+      </section>}
+      {recipe.basis === "dry" && !recipe.factoryBatch && <p className="warning-message">Ao aplicar as pesagens, a fórmula passa para matéria natural e os limites de inclusão em matéria seca são limpos para revisão.</p>}
       <button type="button" className="primary-button" disabled={invalidInput || plan.warnings.length > 0} onClick={apply}>Aplicar pesagens à fórmula</button>
       <p className="field-hint">A fórmula só incorpora os pesos ajustados ao aplicar as pesagens. Seus limites nutricionais devem ser conferidos após a atualização.</p>
     </>}

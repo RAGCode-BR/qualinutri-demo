@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import logoUrl from "../../assets/qualinutri-logo.png";
+import logoUrl from "../../assets/qualinutri-logo.svg";
 import type { LoadDetail, LoadDetailItem, LoadStatus } from "../../services/loadService";
 import { formatNumber } from "../../utils/formatters";
 import { sourceField } from "../customers/customerSourceFields";

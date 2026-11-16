@@ -1,4 +1,4 @@
-import logoUrl from "../../../assets/qualinutri-logo.png";
+import logoUrl from "../../../assets/qualinutri-logo.svg";
 import type { DemoTables } from "../../../demo/store/types";
 import type { LoadStatus } from "../../../services/loadService";
 import type { Packing } from "../../../domain/loads/summarizeLoad";

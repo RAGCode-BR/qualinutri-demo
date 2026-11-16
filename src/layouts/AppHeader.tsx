@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bell, ChevronDown, ChevronsDown, ChevronsUp, Search } from "lucide-react";
-import logoUrl from "../assets/qualinutri-logo.png";
+import logoUrl from "../assets/qualinutri-logo.svg";
+import brandLogoUrl from "../assets/qualinutri-logo-reversed-mark.svg";
 import { DataSourceStatus } from "../components/DataSourceStatus";
 import { tabIcons, tabLabels, useVisibleGroups, type TabId } from "./AppSidebar";
 import { UserMenu } from "./UserMenu";
@@ -57,7 +58,9 @@ export function AppHeader({ activeTab, menuOpen, collapsed, badges = {}, alertCo
         <span className="sr-only">{menuOpen ? "Fechar menu" : "Abrir menu"}</span>
       </button>
       <button type="button" className="topbar-brand" onClick={() => go("dashboard")} aria-label="Ir para o Início">
-        <img src={logoUrl} alt="" />
+        <img src={brandLogoUrl} alt="" />
+        {/* Texto de verdade no lugar do desenhado: legível no tamanho da barra */}
+        <span className="topbar-brand-tagline" aria-hidden="true">Nutrição Animal</span>
       </button>
 
       {(
@@ -98,13 +101,13 @@ export function AppHeader({ activeTab, menuOpen, collapsed, badges = {}, alertCo
                   {groupBadge > 0 && <span className="nav-badge">{groupBadge > 99 ? "99+" : groupBadge}</span>}
                   <ChevronDown size={15} className="top-nav-chevron" aria-hidden="true" />
                 </button>
-                {isOpen && (
-                  <div className="mega-panel glass">
-                    {group.items.map((item) => {
+                {/* Sempre montado: abre e fecha por transição (interrompível); fechado fica inerte. */}
+                <div className="mega-panel glass" data-state={isOpen ? "open" : "closed"} inert={!isOpen}>
+                    {group.items.map((item, index) => {
                       const Icon = item.icon;
                       const badge = badges[item.id];
                       return (
-                        <button key={item.id} type="button" className="mega-item" aria-current={activeTab === item.id ? "page" : undefined} onClick={() => go(item.id)}>
+                        <button key={item.id} type="button" className="mega-item" style={{ "--i": index } as CSSProperties} aria-current={activeTab === item.id ? "page" : undefined} onClick={() => go(item.id)}>
                           <span className="mega-icon"><Icon size={20} aria-hidden="true" /></span>
                           <span className="mega-text">
                             <strong>{item.label}{badge ? <span className="nav-badge">{badge}</span> : null}</strong>
@@ -113,8 +116,7 @@ export function AppHeader({ activeTab, menuOpen, collapsed, badges = {}, alertCo
                         </button>
                       );
                     })}
-                  </div>
-                )}
+                </div>
               </div>
             );
           })}

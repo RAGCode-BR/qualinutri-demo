@@ -40,11 +40,11 @@ export function recipeCsv(recipe: Recipe, feeds: NutritionFeed[]) {
   };
   const rows: (string | number)[][] = [
     ["Formulação", recipe.name],
-    ["Alimento", "% natural", "% MS", "kg/lote", "kg natural/cabeça/dia", "Custo do lote R$"],
-    ...result.ingredients.map((item) => [item.name, item.naturalPct, item.dryPct, item.batchKg, item.naturalKgPerHeadDay, item.batchCost]),
+    ["Alimento", "% natural", "% MS", "kg/batida", ...(recipe.factoryBatch ? [] : ["kg natural/cabeça/dia"]), "Custo da batida R$"],
+    ...result.ingredients.map((item) => [item.name, item.naturalPct, item.dryPct, item.batchKg, ...(recipe.factoryBatch ? [] : [item.naturalKgPerHeadDay]), item.batchCost]),
     ["Custo por t natural R$", result.costPerTonNatural],
     ["Custo por t MS R$", result.costPerTonDry],
-    ["Custo alimentar/cabeça/dia R$", result.costPerHeadDay],
+    ...(recipe.factoryBatch ? [] : [["Custo alimentar/cabeça/dia R$", result.costPerHeadDay]]),
   ];
   return "\uFEFF" + rows.map((row) => row.map(cell).join(";")).join("\r\n");
 }

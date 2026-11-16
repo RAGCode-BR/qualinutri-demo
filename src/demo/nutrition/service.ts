@@ -1,8 +1,10 @@
+import { getDemoViewer } from "../app/session";
 import { db } from "../store/db";
 import { newId, isoDate, today } from "../store/ids";
 import { calculateDiet, validateFeed } from "./calculations";
 import type { NutritionFeed } from "./types";
 import type { NutritionWorkspace, Recipe } from "./model";
+import { calculateMixerPlan } from "./mixers";
 import { buildNutrition } from "./seed";
 
 export function nutritionState(): NutritionWorkspace {
@@ -11,8 +13,13 @@ export function nutritionState(): NutritionWorkspace {
   return tables.nutrition;
 }
 
+function requireWriter() {
+  if (getDemoViewer().role === "consulta") throw new Error("O perfil Consulta só visualiza.");
+}
+
 /** Cópia independente: o teste não redefine alimentos nem fórmulas do usuário. */
 export function createFormulationTest(): Recipe {
+  requireWriter();
   const example = buildNutrition();
   const recipe = example.diets[0];
   const feedIds = new Map(recipe.ingredients.map((item) => [item.feedId, newId()]));
@@ -38,6 +45,7 @@ export function createFormulationTest(): Recipe {
 }
 
 export function saveRecipe(recipe: Recipe) {
+  requireWriter();
   calculateDiet(recipe, nutritionState().feeds);
   if (!recipe.name.trim()) throw new Error("Informe o nome da formulação.");
   const next = { ...structuredClone(recipe), updatedAt: new Date().toISOString() };
@@ -51,6 +59,7 @@ export function saveRecipe(recipe: Recipe) {
 }
 
 export function saveFeed(feed: NutritionFeed) {
+  requireWriter();
   validateFeed(feed);
   db.write((tables) => {
     tables.nutrition ??= buildNutrition();
@@ -61,6 +70,7 @@ export function saveFeed(feed: NutritionFeed) {
 }
 
 export function deleteFeed(id: string) {
+  requireWriter();
   const state = nutritionState();
   if (state.diets.some((recipe) => recipe.ingredients.some((ingredient) => ingredient.feedId === id))) {
     throw new Error("Este alimento está em uma formulação salva. Retire-o da formulação antes de excluir.");
@@ -69,6 +79,7 @@ export function deleteFeed(id: string) {
 }
 
 export function saveAsFeed(recipe: Recipe) {
+  requireWriter();
   const result = calculateDiet(recipe, nutritionState().feeds);
   if (!result.compliant) throw new Error("Confira as restrições antes de salvar a mistura como alimento.");
   const feed = {
@@ -80,7 +91,8 @@ export function saveAsFeed(recipe: Recipe) {
   return feed;
 }
 
-export function publishProduction(recipe: Recipe, product: string, bags: number, bagKg: number) {
+export function publishProduction(recipe: Recipe, product: string, bags: number, bagKg: number, materialsByFeed: Record<string, string> = {}) {
+  requireWriter();
   const tables = db.read();
   const state = nutritionState();
   const result = calculateDiet(recipe, state.feeds);
@@ -89,11 +101,30 @@ export function publishProduction(recipe: Recipe, product: string, bags: number,
   if (!catalogProduct || bagKg !== catalogProduct.weightKg || !Number.isSafeInteger(bags) || bags <= 0 || bags > 100000) {
     throw new Error("Escolha um produto cadastrado e informe uma quantidade inteira de sacas.");
   }
+  const plan = calculateMixerPlan(recipe, state.feeds);
+  if (plan.warnings.length) throw new Error(plan.warnings.join(" "));
+  if (plan.ingredients.some((entry) => Math.abs(entry.actualKg - entry.nominalKg) > 0.000001)) {
+    throw new Error("Aplique as pesagens à fórmula e confira as metas antes de emitir a ordem.");
+  }
+  const weight = bags * bagKg;
+  const fullBatches = Math.floor((weight + 0.000001) / plan.totalKg);
+  const remainderKg = Math.max(0, weight - fullBatches * plan.totalKg);
+  const weighing = {
+    recipeName: recipe.name, batchKg: plan.totalKg, fullBatches, remainderKg,
+    stages: plan.stages.filter((stage) => stage.actualKg > 0).map(({ stage, rows }) => ({
+      stage, rows: rows.filter((row) => row.actualKg > 0).map((row) => {
+        const stockName = tables.erp.materials.find((item) => item.id === materialsByFeed[row.key])?.name;
+        return { name: stockName && stockName !== row.name ? `${stockName} (${row.name})` : row.name,
+          kg: row.actualKg, accumulatedKg: row.accumulatedKg };
+      }),
+    })),
+  };
   const ingredients = result.ingredients.filter((entry) => entry.naturalPct > 0).map((entry) => {
     const feed = state.feeds.find((candidate) => candidate.id === entry.feedId)!;
-    const material = tables.erp.materials.find((candidate) => candidate.name === feed.name);
-    if (!material) throw new Error(`Vincule o alimento “${feed.name}” a uma matéria-prima de mesmo nome no estoque.`);
-    if (material.stockKg < entry.naturalPct / 100 * bags * bagKg) {
+    const selectedId = materialsByFeed[feed.id];
+    const material = tables.erp.materials.find((candidate) => selectedId !== undefined ? candidate.id === selectedId : candidate.name === feed.name);
+    if (!material) throw new Error(`Vincule o alimento “${feed.name}” a uma matéria-prima no estoque.`);
+    if (material.stockKg + 0.000001 < entry.naturalPct / 100 * bags * bagKg) {
       throw new Error(`Estoque insuficiente de ${material.name} para esta ordem.`);
     }
     return { material: material.name, pct: entry.naturalPct };
@@ -105,13 +136,16 @@ export function publishProduction(recipe: Recipe, product: string, bags: number,
     throw new Error("Este produto já tem ordem em aberto. Conclua a ordem atual antes de alterar sua fórmula.");
   }
   const id = newId();
+  const formulaVersion = { ...structuredClone(recipe), updatedAt: new Date().toISOString() };
   db.write((current) => {
+    current.nutrition ??= buildNutrition();
+    current.nutrition.diets = [...current.nutrition.diets.filter((item) => item.id !== recipe.id), formulaVersion];
     const previous = current.erp.formulas.find((formula) => formula.product === product);
     const formula = { id: previous?.id ?? newId(), product, ingredients, version: `Nutrição ${new Date().toISOString()}`,
       updatedAt: isoDate(today()), author: "Nutrição · demonstração" };
     current.erp.formulas = [...current.erp.formulas.filter((entry) => entry.product !== product), formula];
     current.erp.orders.push({ id, number: ++current.erp.seq.order, product, bags, bagKg, status: "planejada",
-      date: isoDate(today()), operator: "Nutrição · demonstração", formulaIngredients: structuredClone(ingredients) });
+      date: isoDate(today()), operator: "Nutrição · demonstração", formulaIngredients: structuredClone(ingredients), weighing });
   });
   return id;
 }

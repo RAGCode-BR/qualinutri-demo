@@ -2,7 +2,7 @@ import {
   BarChart3, Boxes, Calculator, CheckCheck, ClipboardCheck, Factory, FileCheck2, Landmark, ShieldCheck, Wrench, X, FileText, FileUp, LayoutDashboard,
   MessagesSquare, Package, Percent, Receipt, ScrollText, Truck, UserCog, Users, CalendarDays, Route, type LucideIcon,
 } from "lucide-react";
-import logoUrl from "../assets/qualinutri-logo.png";
+import logoUrl from "../assets/qualinutri-logo.svg";
 import { useAuth } from "../app/AuthProvider";
 import { DEMO_HIDDEN_TABS } from "../demo/config";
 import type { UserProfile } from "../types/auth";

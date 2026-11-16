@@ -1,4 +1,4 @@
-import { NutritionError, optimizeDiet } from "./calculations";
+import { NutritionError, optimizeDiet, recipeFeeds } from "./calculations";
 import type { DietOptimization, NutritionDiet, NutritionFeed } from "./types";
 
 export type PriceScenario = {
@@ -20,7 +20,7 @@ export function priceScenarios(
   feedId: string,
   changesPercent: number[],
 ): PriceScenario[] {
-  const target = feeds.find((feed) => feed.id === feedId);
+  const target = recipeFeeds(diet, feeds).find((feed) => feed.id === feedId);
   if (!target || !diet.ingredients.some((item) => item.feedId === feedId)) {
     throw new NutritionError("Escolha um alimento presente na formulação para variar o preço.");
   }
@@ -34,8 +34,9 @@ export function priceScenarios(
   }
   return changesPercent.map((changePercent) => {
     const pricePerKgNatural = target.pricePerKgNatural * (1 + changePercent / 100);
-    const scenarioFeeds = feeds.map((feed) => feed.id === feedId ? { ...feed, pricePerKgNatural } : feed);
-    return { changePercent, pricePerKgNatural, result: optimizeDiet(diet, scenarioFeeds) };
+    const scenario = { ...diet, ingredients: diet.ingredients.map((item) => item.feedId === feedId
+      ? { ...item, analysis: { ...target, pricePerKgNatural } } : item) };
+    return { changePercent, pricePerKgNatural, result: optimizeDiet(scenario, feeds) };
   });
 }
 
@@ -56,7 +57,7 @@ export function nutrientScenarios(
       return { nutrient, minimum, result: { status: "infeasible", message: "O mínimo deste cenário passa do máximo definido para o nutriente." } };
     }
     const nutrientBounds = diet.nutrientBounds.filter((bound) => bound.nutrient !== nutrient);
-    nutrientBounds.push({ nutrient, min: minimum, max: previous?.max });
+    nutrientBounds.push({ nutrient, min: minimum, max: previous?.max, basis: previous?.basis });
     const scenario = { ...diet, nutrientBounds };
     return { nutrient, minimum, result: optimizeDiet(scenario, feeds) };
   });

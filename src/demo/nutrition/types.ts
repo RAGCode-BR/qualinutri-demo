@@ -5,6 +5,7 @@ export const NUTRIENTS = [
   { key: "etherExtract", label: "Extrato etéreo", unit: "% MS" },
   { key: "ash", label: "Matéria mineral", unit: "% MS" },
   { key: "starch", label: "Amido", unit: "% MS" },
+  { key: "monensin", label: "Monensina", unit: "ppm MS" },
   { key: "calcium", label: "Cálcio", unit: "% MS" },
   { key: "phosphorus", label: "Fósforo", unit: "% MS" },
   { key: "metabolizableEnergy", label: "Energia metabolizável", unit: "Mcal/kg MS" },
@@ -31,9 +32,10 @@ export type RationIngredient = {
   /** Limites de inclusão na mesma base declarada na dieta. */
   minPct?: number;
   maxPct?: number;
+  analysis?: Pick<NutritionFeed, "dryMatterPct" | "pricePerKgNatural" | "pricePending" | "nutrients">;
 };
 
-export type NutrientBound = { nutrient: string; min?: number; max?: number };
+export type NutrientBound = { nutrient: string; min?: number; max?: number; basis?: "natural" | "dry" };
 export type NutritionAnimal = {
   category: "corte" | "leite" | "outro";
   name?: string;
@@ -65,6 +67,7 @@ export type NutritionDiet = {
   heads: number;
   days: number;
   nutrientBounds: NutrientBound[];
+  factoryBatch?: boolean;
   animal?: NutritionAnimal;
   economics?: NutritionEconomics;
   notes?: string;
@@ -96,6 +99,7 @@ export type DietConstraintResult = {
   min?: number;
   max?: number;
   satisfied: boolean;
+  basis?: "natural" | "dry";
 };
 
 export type DietCalculation = {
@@ -115,6 +119,7 @@ export type DietCalculation = {
   totalDryKg: number;
   totalCost: number;
   nutrients: Record<string, number>;
+  nutrientsNatural: Record<string, number>;
   /** Nutrientes sem análise em algum ingrediente incluído. Não são presumidos como zero. */
   incompleteNutrients: string[];
   constraints: DietConstraintResult[];

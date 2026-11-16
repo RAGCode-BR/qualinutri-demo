@@ -34,6 +34,7 @@ export function DeliverySheets({ loadId, initial = "fichas", onClose }: { loadId
       title={`${romaneio ? "Romaneio" : "Ficha de entrega"} · Carga #${load.load_number}`}
       subtitle={`${stops.length} ${stops.length === 1 ? "cliente" : "clientes"} · ${load.vehicle_name_snapshot}`}
       onClose={onClose}
+      docKey={selected}
       actions={(
         <div className="doc-viewer-actions">
           <select className="delivery-select" value={selected} onChange={(event) => setSelected(event.target.value)} aria-label="Documento">

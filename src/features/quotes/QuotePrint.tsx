@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import logoUrl from "../../assets/qualinutri-logo.png";
+import logoUrl from "../../assets/qualinutri-logo.svg";
 import type { SavedQuoteDetail } from "../../services/quoteService";
 import { formatCurrency, formatNumber, formatPercentage } from "../../utils/formatters";
 import { guessDocumentKind } from "../../domain/documents/brazilianDocument";

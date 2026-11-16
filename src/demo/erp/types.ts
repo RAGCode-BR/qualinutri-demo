@@ -53,8 +53,12 @@ export type FleetRequest = {
   checkRecordId?: string | null;
 };
 
+export const PAYMENT_METHODS = ["Pix", "Cheque", "Depósito", "Boleto", "Transferência", "Dinheiro", "Cartão débito", "Cartão crédito"] as const;
+export type SettlementInput = { method: (typeof PAYMENT_METHODS)[number]; date: string; interest: number; fine: number; discount: number; note: string; cashAccount?: "daily" | "safe"; instrument?: { reference: string; brand: string; due: string; fee: number; installments: number }; creditId?: string; creditAmount?: number };
+export type Settlement = SettlementInput & { net: number; by: string; creditKind?: SupplierCredit["kind"] };
+export type SupplierCredit = { id: string; supplier: string; kind: "Devolução" | "Adiantamento"; date: string; reference: string; amount: number; remaining: number };
 /** Baixa de um título a receber (boleto, Pix ou depósito identificado). */
-export type Receipt = { key: string; paidAt: string; bank: BankId; amount: number; by: string };
+export type Receipt = { key: string; paidAt: string; bank: BankId | null; amount: number; by: string; pendingIds?: string[]; settlement?: Settlement };
 /** Conta a receber lançada à mão, fora de um orçamento (ex.: venda de sucata, aluguel, reembolso). */
 export type ExtraReceivable = { id: string; customer: string; description: string; dueDate: string; amount: number; createdAt: string; createdBy: string };
 
@@ -62,7 +66,14 @@ export type Trip = { id: string; vehicle: string; date: string; customer: string
 
 export type Material = { id: string; name: string; unit: "kg"; stockKg: number; minKg: number; pricePerKg: number; location: string };
 export type Formula = { id: string; product: string; ingredients: { material: string; pct: number }[]; version: string; updatedAt: string; author: string };
-export type ProductionOrder = { id: string; number: number; product: string; bags: number; bagKg: number; status: "planejada" | "em_producao" | "concluida"; date: string; operator: string; formulaIngredients?: { material: string; pct: number }[] };
+export type ProductionWeighing = {
+  recipeName: string;
+  batchKg: number;
+  fullBatches: number;
+  remainderKg: number;
+  stages: { stage: 1 | 2 | 3; rows: { name: string; kg: number; accumulatedKg: number }[] }[];
+};
+export type ProductionOrder = { id: string; number: number; product: string; bags: number; bagKg: number; status: "planejada" | "em_producao" | "concluida"; date: string; operator: string; formulaIngredients?: { material: string; pct: number }[]; weighing?: ProductionWeighing };
 export type FinishedStock = { product: string; bags: number; reserved: number; location: string };
 
 export type Approval = {
@@ -96,6 +107,7 @@ export type ChatThread = {
 };
 
 export type ErpTables = {
+  cash?: import("./cash").CashState;
   banks: Bank[];
   anticipations: Anticipation[];
   statement: StatementLine[];
@@ -112,6 +124,7 @@ export type ErpTables = {
   chat: ChatMessage[];
   /** Baixas manuais de títulos a receber (dados antigos não têm). */
   receipts?: Receipt[];
+  supplierCredits?: SupplierCredit[];
   /** Contas a receber avulsas (dados antigos não têm). */
   extraReceivables?: ExtraReceivable[];
   /** Conversas (criadas na primeira leitura de dados antigos, ver demo/chat/seed). */

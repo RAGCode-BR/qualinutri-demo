@@ -181,8 +181,7 @@
     height: 52vw;
     content: "";
     opacity: 0.05;
-    background: url("../assets/qualinutri-logo.png") no-repeat center / contain;
-    filter: brightness(0) saturate(100%) invert(18%) sepia(60%) saturate(800%) hue-rotate(95deg);
+    background: url("../assets/qualinutri-logo-green.svg") no-repeat center / contain;
   }
 
   @keyframes blob-drift {
@@ -4855,6 +4854,7 @@
   .erp-page,
   .erp-grid {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--gap);
   }
 
@@ -6100,6 +6100,16 @@
     to { opacity: 1; transform: none; }
   }
 
+  /* PDF gerado, visto no leitor do próprio navegador */
+  .doc-viewer-page[hidden] { display: none; }
+  .doc-viewer-canvas.is-pdf { display: flex; padding: 0; overflow: hidden; }
+  .doc-viewer-pdf { flex: 1; width: 100%; min-height: 0; background: #525659; border: 0; }
+  .doc-viewer-pdf-actions .secondary-button[aria-pressed="true"] { color: #fff; background: var(--brand-600); border-color: var(--brand-600); }
+  .doc-viewer-error { margin: 0; padding: 8px 18px; color: #7a1d14; font-size: 13px; background: #fdecea; }
+  .doc-viewer-spin { animation: doc-spin 0.9s linear infinite; }
+  @keyframes doc-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .doc-viewer-spin { animation-duration: 2.4s; } }
+
   /* Tabelas com linha clicável */
   .erp-table tr.is-clickable {
     cursor: pointer;
@@ -6517,8 +6527,9 @@
 }
 
 .fiscal-issuer img {
-  width: 74px;
-  filter: brightness(0) saturate(100%) invert(22%) sepia(55%) saturate(700%) hue-rotate(95deg);
+  flex: 0 0 auto;
+  width: 96px;
+  height: auto;
 }
 
 .fiscal-issuer div {
@@ -7807,7 +7818,7 @@
 /* PDF do relatório */
 .rc-doc { color: #1f2a22; font-size: 9.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rc-doc-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 18px; border-radius: 10px; background: #0a2e17; color: #fff; }
-.rc-doc-head img { height: 34px; filter: brightness(0) invert(1); }
+.rc-doc-head img { height: 34px; }
 .rc-doc-head div { display: flex; flex-direction: column; align-items: flex-end; }
 .rc-doc-head span { color: #b6e52b; font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
 .rc-doc-head strong { font-size: 15pt; }
@@ -8030,8 +8041,271 @@
 .fin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 8px; }
 .fin-form .fin-wide { grid-column: span 2; }
 .fin-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+/* Alinhamento · os campos em grade/linha não herdam o espaçamento vertical de formulário empilhado */
+.fin-toolbar > .field + .field,
+.fin-form > .field + .field,
+.cash-fields > .field + .field { margin-top: 0; }
+.fin-filters { justify-content: flex-start; align-items: flex-end; gap: 12px 16px; margin: 14px 0 6px; }
+.fin-filters > .field { flex: 0 1 18rem; margin: 0; }
+.fin-filters > .field input,
+.fin-filters > .field select { width: 100%; height: 44px; min-height: 44px; }
+.fin-filters > .secondary-button { margin: 0 0 0 auto; height: 44px; }
+.fin-more { margin: 14px 0 0; }
+.cash-fields { align-items: end; }
+.cash-fields .cash-check { min-height: 44px; }
+.cash-table th.is-number { text-align: right; }
+
+/* Conciliação · valor e ação em colunas fixas para os números ficarem alinhados */
+.statement li { grid-template-columns: auto minmax(0, 1fr) minmax(9rem, auto) 10.5rem; }
+.statement li > :nth-child(3) { justify-content: flex-end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.statement li > :nth-child(4) { justify-self: end; }
+
+/* Faturado × antecipado · rótulo do mês em caixa de frase, valores em linhas estáveis */
+.billing-label { text-transform: none; }
+.billing-label::first-letter { text-transform: uppercase; }
+.billing-values strong, .billing-values small { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.billing-bars + .cashflow-legend { padding-left: 8px; }
+
+.fin-toolbar .segmented-glass { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.fin-toolbar .segmented-glass > button { white-space: nowrap; flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .fin-filters > .field { flex: 1 1 100%; }
+  .fin-filters > .secondary-button { margin-left: 0; }
+  .statement li { grid-template-columns: auto minmax(0, 1fr); }
+  .statement li > :nth-child(3), .statement li > :nth-child(4) { grid-column: 2; justify-self: start; justify-content: flex-start; }
+}
 @media (max-width: 640px) {
   .fin-form .fin-wide { grid-column: 1 / -1; }
   .fin-list.title-list.is-readonly li > div { grid-template-columns: minmax(0, 1fr) auto; }
   .fin-list .fin-actions, .fin-list .fin-done { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* Documentos simples (política, simulação de prazos, relatório do checklist) no DocViewer e na impressão */
+.simple-doc { color: #0e2116; font: 13px/1.5 var(--font-body, system-ui), system-ui, sans-serif; }
+.simple-doc header { padding-bottom: 12px; margin-bottom: 18px; border-bottom: 2px solid #1d6b3a; }
+.simple-doc h1 { margin: 0; font-size: 22px; line-height: 1.2; }
+.simple-doc header p { margin: 4px 0 0; color: #4a5850; }
+.simple-doc h2 { margin: 18px 0 4px; font-size: 15px; }
+.simple-doc h2 small { color: #7a5300; font-weight: 600; }
+.simple-doc p { margin: 0 0 8px; }
+.simple-doc table { width: 100%; margin-top: 12px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.simple-doc th, .simple-doc td { padding: 7px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid #e2e8e3; }
+.simple-doc th { color: #5f7366; font-size: 11px; letter-spacing: 0.02em; text-transform: uppercase; }
+.simple-doc tr { break-inside: avoid; }
+.simple-doc footer { margin-top: 24px; color: #5f7366; font-size: 11px; }
+.simple-doc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
+.simple-doc-kpis div { padding: 10px 12px; border: 1px solid #d6e2d8; border-radius: 10px; }
+.simple-doc-kpis dt { color: #4a5850; font-size: 12px; }
+.simple-doc-kpis dd { margin: 2px 0 0; font-size: 20px; font-weight: 800; }
+.simple-doc .s-conforme { color: #1a7a3c; }
+.simple-doc .s-pendente { color: #7a5300; }
+.simple-doc .s-nao_conforme { color: #b42318; font-weight: 700; }
+
+/* Financeiro · a linha inteira abre o título; ações (Pagar, Pix, Dar baixa) ficam por cima */
+.fin-list.title-list.is-readonly li > div { position: relative; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .fin-list.title-list.is-readonly li > div:hover { border-color: var(--brand-500); box-shadow: 0 6px 18px -12px rgb(19 88 45 / 45%); } }
+.fin-row-open { display: flex; flex-direction: column; min-width: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; background: none; border: 0; appearance: none; }
+.fin-row-open::after { position: absolute; inset: 0; content: ""; border-radius: 14px; }
+.fin-row-open:focus-visible { outline: none; }
+.fin-row-open:focus-visible::after { outline: 2px solid var(--brand-600); outline-offset: 2px; }
+.fin-list .fin-actions { position: relative; z-index: 1; }
+.fin-list .fin-actions:empty { display: none; }
+
+/* Filtros de lançamentos · "Limpar filtros" na mesma linha de base dos campos */
+.cash-fields > .link-button { align-self: end; justify-self: start; height: 44px; margin: 0; }
+
+/* Menu do topo · abre e fecha por transição: leve (≈200ms), interrompível, ancorado no botão */
+@media screen {
+  .mega-panel {
+    animation: none;
+    transform-origin: top left;
+    transition: opacity 180ms var(--ease), transform 200ms var(--ease), visibility 0s linear 0s;
+  }
+  .mega-panel[data-state="closed"] {
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    transition: opacity 120ms var(--ease), transform 140ms var(--ease), visibility 0s linear 140ms;
+  }
+  /* Itens entram em cascata curta (só opacidade), sem atrasar o clique */
+  .mega-panel .mega-item {
+    transition: background-color 150ms ease, color 150ms ease, opacity 180ms var(--ease) calc(var(--i, 0) * 25ms), transform 100ms var(--ease);
+  }
+  .mega-panel[data-state="closed"] .mega-item { opacity: 0; transition-delay: 0s; }
+  .mega-item:active { transform: scale(0.98); }
+  .top-nav-chevron { transition: transform 200ms var(--ease); }
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  .mega-panel, .mega-panel[data-state="closed"] { transform: none; }
+  .mega-panel .mega-item { transition: background-color 150ms ease, opacity 120ms ease; }
+  .mega-item:active { transform: none; }
+}
+
+/* Financeiro · linhas de título: resposta ao passar o mouse e ao clicar */
+@media screen {
+  .fin-list.title-list.is-readonly li > div {
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, transform 120ms var(--ease);
+  }
+  .fin-list.title-list.is-readonly li > div:active { transform: scale(0.995); }
+  .fin-row-open strong { transition: color 150ms ease; }
+}
+@media screen and (hover: hover) and (pointer: fine) {
+  .fin-list.title-list.is-readonly li > div:hover { background-color: #f6fbf3; }
+  .fin-list.title-list.is-readonly li > div:hover .fin-row-open strong { color: var(--brand-700); }
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  .fin-list.title-list.is-readonly li > div:active { transform: none; }
+}
+
+/* Logo do topo: versão da marca para fundo escuro (branco + verde-limão), maior e sem cápsula.
+   "Nutrição Animal" é texto real (o desenhado fica ilegível nesse tamanho), no lugar exato da arte:
+   começa depois do laço limão (54% da largura) e alinha à direita com o sublinhado. */
+@media screen {
+  .topbar-brand { --logo-w: 156px; position: relative; }
+  .app-topbar.is-collapsed .topbar-brand { --logo-w: 112px; }
+  .topbar-brand img { width: var(--logo-w); }
+  .topbar-brand-tagline {
+    position: absolute;
+    top: calc(4px + var(--logo-w) * 0.237);
+    right: calc(6px + var(--logo-w) * 0.01);
+    left: calc(var(--logo-w) * 0.535);
+    overflow: hidden;
+    color: #fff;
+    font: 600 max(8.5px, calc(var(--logo-w) * 0.066)) / 1 "Barlow Semi Condensed", "Barlow", sans-serif;
+    letter-spacing: 0.025em;
+    text-align: right;
+    white-space: nowrap;
+    text-shadow: 0 1px 6px rgb(0 0 0 / 35%);
+    pointer-events: none;
+  }
+}
+@media screen and (max-width: 900px) {
+  .topbar-brand, .app-topbar.is-collapsed .topbar-brand { --logo-w: 132px; }
+}
+
+/* Vidro líquido · reforço sutil: borda que pega luz, reflexo no alto e brilho no canto. Sem desfoque extra (custo zero de desempenho). */
+@media screen {
+  .glass,
+  .panel,
+  .kpi-card,
+  .dash-card,
+  .strip-card,
+  .ck-card {
+    background:
+      radial-gradient(120% 70% at 0% 0%, rgb(255 255 255 / 55%), rgb(255 255 255 / 0%) 46%),
+      linear-gradient(135deg, rgb(255 255 255 / 90%), rgb(255 255 255 / 74%));
+    border-color: rgb(255 255 255 / 78%);
+    box-shadow: var(--shadow-2), inset 0 1px 0 rgb(255 255 255 / 95%), inset 0 -1px 0 rgb(19 88 45 / 6%), inset 1px 0 0 rgb(255 255 255 / 40%);
+  }
+  .glass-dark {
+    box-shadow: var(--shadow-3), inset 0 1px 0 rgb(255 255 255 / 30%), inset 0 -1px 0 rgb(0 0 0 / 18%);
+  }
+  .app-topbar::before {
+    background: linear-gradient(180deg, rgb(255 255 255 / 16%) 0%, rgb(255 255 255 / 0%) 45%);
+    mix-blend-mode: normal;
+  }
+}
+
+/* ================= Nada pode passar da tela: correções de corte e vazamento ================= */
+@media screen {
+  /* Itens de grade não crescem além da coluna (o padrão "min-width: auto" empurrava o conteúdo para fora) */
+  .panel, .dash-card, .strip-card, .kpi-card, .ck-card { min-width: 0; }
+  .nutrition-stack { grid-template-columns: minmax(0, 1fr); }
+  .nutrition-stack > * { min-width: 0; }
+  .nutrition-stack table { min-width: 0; }
+
+  /* Crédito: a lista rola dentro do cartão em vez de ser cortada */
+  .credit-list { grid-template-rows: auto auto minmax(0, 1fr); }
+  .credit-list ul { min-height: 0; overscroll-behavior: contain; }
+
+  /* Tabelas em painel sem margem: rolam na horizontal se não couberem, em vez de cortar as ações */
+  .panel.panel-flush { overflow-x: auto; overflow-y: hidden; }
+
+  /* Seletores segmentados longos: rolam na horizontal dentro da largura disponível */
+  .segmented-glass { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .segmented-glass::-webkit-scrollbar { display: none; }
+  .segmented-glass > button { flex: 0 0 auto; white-space: nowrap; }
+}
+
+/* Financeiro · Visão geral cabe na tela: meta em faixa fina; faturamento e saldo lado a lado */
+@media screen {
+  .erp-goal.is-slim { grid-template-columns: minmax(0, auto) minmax(140px, 1fr) auto; align-items: center; gap: 10px 28px; padding-block: 16px; }
+  .erp-goal.is-slim .drawer-kicker { margin: 0; }
+  .erp-goal.is-slim h2 { margin: 2px 0; font-size: clamp(20px, 2.1vw, 26px); }
+  .erp-goal.is-slim h2 small { font-size: 14px; }
+  .erp-goal.is-slim .muted { font-size: 12.5px; }
+  .erp-goal.is-slim .erp-goal-bar { height: 12px; }
+  .erp-goal-pct { color: var(--brand-700); font-size: 22px; font-variant-numeric: tabular-nums; }
+
+  .fin-overview-split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: var(--gap); align-items: stretch; }
+  .fin-overview-split > .dash-card { display: flex; flex-direction: column; margin: 0; }
+  .fin-overview-split .dash-card > p.muted { margin: 4px 0 0; font-size: 12.5px; }
+  .fin-overview-split .billing-bars { gap: 4px; margin-top: 8px; }
+  .fin-overview-split .billing-row { grid-template-columns: 128px minmax(0, 1fr) 190px; gap: 12px; padding: 6px 8px; }
+  .fin-overview-split .billing-track { height: 20px; }
+  .fin-overview-split .billing-values strong { font-size: 14px; }
+  .fin-overview-split .billing-values small { font-size: 11.5px; line-height: 1.35; }
+  .fin-overview-split .cashflow-legend { margin-top: auto; padding-top: 8px; }
+
+  .fin-overview-split .bank-cards { flex: 1; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; gap: 8px; }
+  .fin-overview-split .bank-card { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; justify-items: stretch; gap: 12px; padding: 12px 16px; border-radius: 16px; }
+  .fin-overview-split .bank-card-text { display: flex; min-width: 0; flex-direction: column; }
+  .fin-overview-split .bank-card-text > span { font-weight: 700; }
+  .fin-overview-split .bank-card strong { font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+}
+@media screen and (max-width: 1100px) {
+  .fin-overview-split { grid-template-columns: minmax(0, 1fr); }
+  .erp-goal.is-slim { grid-template-columns: minmax(0, 1fr) auto; }
+  .erp-goal.is-slim .erp-goal-bar { grid-column: 1 / -1; grid-row: 2; }
+  .erp-goal.is-slim .erp-goal-pct { grid-column: 2; grid-row: 1; }
+}
+@media screen and (max-width: 640px) {
+  .fin-overview-split .billing-row { grid-template-columns: minmax(0, 1fr); }
+  .fin-overview-split .bank-card { grid-template-columns: auto minmax(0, 1fr); }
+  .fin-overview-split .bank-card strong { grid-column: 2; }
+}
+
+/* Visão geral · coluna lateral (meta + saldo) e gráfico enxuto, para caber numa tela de notebook */
+@media screen {
+  .erp-grid > .kpi-strip { margin: 0; }
+  .fin-overview-split { grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); }
+  .fin-overview-side { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--gap); min-width: 0; }
+  .fin-overview-side > .dash-card { margin: 0; }
+
+  .erp-goal.is-side { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; padding-block: 14px; }
+  .erp-goal.is-side .erp-goal-text { min-width: 0; }
+  .erp-goal.is-side .drawer-kicker { margin: 0; }
+  .erp-goal.is-side h2 { margin: 2px 0 0; font-size: 22px; }
+  .erp-goal.is-side h2 small { font-size: 13px; }
+  .erp-goal.is-side .muted { margin: 2px 0 0; font-size: 12px; }
+  .erp-goal.is-side .erp-goal-pct { grid-column: 2; grid-row: 1; align-self: start; font-size: 22px; color: var(--brand-700); font-variant-numeric: tabular-nums; }
+  .erp-goal.is-side .erp-goal-bar { grid-column: 1 / -1; height: 10px; }
+
+  .fin-overview-split .billing-row { grid-template-columns: 136px minmax(0, 1fr) auto; }
+  .fin-overview-split .billing-label { white-space: nowrap; }
+  .fin-overview-split .billing-values { gap: 1px; }
+  .fin-overview-split .bank-card { padding: 10px 14px; }
+}
+@media screen and (max-width: 1100px) {
+  .fin-overview-split { grid-template-columns: minmax(0, 1fr); }
+}
+@media screen and (max-width: 640px) {
+  .fin-overview-split .billing-values small { white-space: normal; }
+}
+@media screen {
+  .fin-overview-split .bank-cards { grid-auto-rows: auto; align-content: start; gap: 6px; }
+  .fin-overview-split .bank-card { padding: 7px 14px; border-radius: 14px; }
+  .fin-overview-split .bank-card strong { font-size: 18px; }
+  .fin-overview-side .dash-card-head { margin-bottom: 8px; }
+  .erp-goal.is-side { padding-block: 12px; }
+}
+@media screen and (min-width: 1101px) {
+  .fin-overview-split .billing-bars { flex: 1; align-content: space-evenly; }
+}
+@media screen and (max-width: 640px) {
+  .fin-overview-split .billing-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .fin-overview-split .billing-values { text-align: left; }
+  .fin-overview-split .billing-label { white-space: normal; }
 }

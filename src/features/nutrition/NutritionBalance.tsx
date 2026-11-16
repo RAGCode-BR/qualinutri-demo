@@ -1,3 +1,4 @@
+import type { SourceNutrient } from "../../demo/nutrition/model";
 import { NUTRIENTS, type DietCalculation } from "../../demo/nutrition/types";
 
 const format = (value: number | undefined) => value === undefined ? "—" : Number.isFinite(value)
@@ -10,15 +11,19 @@ export function NutritionStatus({ result }: { result: DietCalculation }) {
 }
 
 /** Inclui análises ausentes: omitir a linha esconderia a restrição não atendida. */
-export function NutritionBalance({ result }: { result: DietCalculation }) {
+export function NutritionBalance({ result, definitions = [], baseline }: { result: DietCalculation; definitions?: SourceNutrient[]; baseline?: DietCalculation }) {
   const keys = [...new Set([...Object.keys(result.nutrients), ...result.incompleteNutrients,
     ...result.constraints.filter((entry) => entry.kind === "nutrient").map((entry) => entry.key)])];
-  return <table className="data-table"><thead><tr><th>Nutriente na MS</th><th>Resultado</th><th>Mínimo</th><th>Máximo</th><th>Conferência</th></tr></thead>
+  return <table className="data-table"><thead><tr><th>Nutriente</th><th>Base</th>{baseline && <th>Antes do ajuste</th>}<th>Resultado</th><th>Mínimo</th><th>Máximo</th><th>Conferência</th></tr></thead>
     <tbody>{keys.map((key) => {
       const def = NUTRIENTS.find((entry) => entry.key === key);
-      const value = result.nutrients[key];
+      const source = definitions.find((entry) => entry.id === key);
       const bound = result.constraints.find((entry) => entry.kind === "nutrient" && entry.key === key);
-      return <tr key={key}><td>{def?.label ?? key} · {def?.unit ?? "Unidade cadastrada"}</td>
+      const natural = bound?.basis === "natural";
+      const value = (natural ? (result.nutrientsNatural ?? {}) : result.nutrients)[key];
+      const unit = def?.unit ?? source?.unit;
+      return <tr key={key}><td>{def?.label ?? source?.name ?? key}</td><td>{natural ? "MN" : "MS"}{unit ? ` · ${natural ? unit.replace(/\s*MS$/i, "") : unit}` : ""}</td>
+        {baseline && <td>{format((natural ? baseline.nutrientsNatural : baseline.nutrients)[key])}</td>}
         <td>{value === undefined ? "Análise ausente" : format(value)}</td><td>{format(bound?.min)}</td><td>{format(bound?.max)}</td>
         <td>{!Number.isFinite(value) ? "Análise incompleta" : bound ? bound.satisfied ? "Atende" : "Fora do limite" : "Sem limite"}</td></tr>;
     })}</tbody></table>;

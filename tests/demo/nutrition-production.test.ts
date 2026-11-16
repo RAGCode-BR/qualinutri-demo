@@ -44,3 +44,28 @@ test("reconfere falta de insumos no fechamento sem baixar parte do estoque", asy
   expect(tables.erp.orders.find((entry) => entry.id === id)?.status).toBe("em_producao");
   expect(tables.erp.materials.map((entry) => entry.stockKg)).toEqual(before);
 });
+
+test("produção concluída cria o estoque acabado quando o produto ainda não possui saldo", async () => {
+  const { db } = await import("../../src/demo/store/db");
+  const { nutritionState, publishProduction } = await import("../../src/demo/nutrition/service");
+  const { advanceOrder } = await import("../../src/demo/erp/service");
+  const state = nutritionState();
+  const tables = db.read();
+  const product = tables.catalog.products.find((item) => !tables.erp.orders.some((order) => order.product === item.name && order.status !== "concluida"))!;
+  tables.erp.finished = tables.erp.finished.filter((item) => item.product !== product.name);
+  const id = publishProduction(state.diets[0], product.name, 1, product.weightKg);
+  await advanceOrder(id);
+  await advanceOrder(id);
+  expect(tables.erp.finished.find((item) => item.product === product.name)?.bags).toBe(1);
+  await advanceOrder(id);
+  expect(tables.erp.finished.find((item) => item.product === product.name)?.bags).toBe(1);
+});
+
+test("perfil consulta não pode salvar fórmula nem gerar ordem", async () => {
+  const { setDemoRole } = await import("../../src/demo/app/session");
+  const { nutritionState, saveRecipe, publishProduction } = await import("../../src/demo/nutrition/service");
+  const recipe = nutritionState().diets[0];
+  setDemoRole("consulta");
+  expect(() => saveRecipe(recipe)).toThrow("só visualiza");
+  expect(() => publishProduction(recipe, "", 1, 40)).toThrow("só visualiza");
+});

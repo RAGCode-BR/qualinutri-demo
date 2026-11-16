@@ -3,6 +3,8 @@ import { AlertTriangle, Factory, FlaskConical, Lock, PackageCheck, Play, Plus, W
 import { useDemoTables } from "../../demo/app/useDemoTables";
 import { advanceOrder, createOrder, receiveMaterial } from "../../demo/erp/service";
 import { isoDate, today } from "../../demo/store/ids";
+import { Dialog } from "../../components/Dialog";
+import type { ProductionOrder } from "../../demo/erp/types";
 import { Chip, Stat, Tabs, dateBr, money } from "./shared";
 
 type Section = "orders" | "stock" | "formulas";
@@ -30,6 +32,7 @@ function Orders() {
   const [product, setProduct] = useState(tables.catalog.products[0]?.name ?? "");
   const [bags, setBags] = useState(200);
   const orders = tables.erp.orders;
+  const [weighing, setWeighing] = useState<ProductionOrder>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const columns = (["planejada", "em_producao", "concluida"] as const).map((status) => ({ status, list: orders.filter((order) => order.status === status).slice(0, status === "concluida" ? 8 : 20) }));
@@ -64,14 +67,41 @@ function Orders() {
               <article key={order.id} className="kpi-board-card is-static" style={{ animationDelay: `${index * 35}ms` }}>
                 <strong>OP {order.number} · {order.product}</strong>
                 <small>{order.bags} sacas de {order.bagKg} kg · {dateBr(order.date)} · {order.operator}</small>
+                {order.weighing && <button type="button" className="link-button" onClick={() => setWeighing(order)}>Ver ficha de pesagem</button>}
                 {order.status !== "concluida" && <button type="button" className="link-button" onClick={() => { setError(""); setNotice(""); void advanceOrder(order.id).then((next) => setNotice(next === "concluida" ? `OP ${order.number} concluída: insumos baixados e ${order.bags} sacas no estoque de acabado.` : `OP ${order.number} em produção.`)).catch((reason: Error) => setError(reason.message)); }}><Play size={13} aria-hidden="true" /> {order.status === "planejada" ? "Iniciar" : "Concluir e baixar insumos"}</button>}
               </article>
             ))}
           </div>
         ))}
       </section>
+      {weighing?.weighing && <Dialog title={`Ficha de pesagem · OP ${weighing.number}`} onClose={() => setWeighing(undefined)}>
+        <WeighingSheet order={weighing} />
+      </Dialog>}
     </div>
   );
+}
+
+function WeighingSheet({ order }: { order: ProductionOrder }) {
+  const plan = order.weighing!;
+  const kg = (value: number) => value.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+  const batches = [
+    ...(plan.fullBatches > 0 ? [{ label: `${plan.fullBatches} batida(s) de ${kg(plan.batchKg)} kg`, scale: 1 }] : []),
+    ...(plan.remainderKg > 0.000001 ? [{ label: `Batida parcial de ${kg(plan.remainderKg)} kg`, scale: plan.remainderKg / plan.batchKg }] : []),
+  ];
+  return <>
+    <p>{order.product} · {plan.recipeName} · {kg(order.bags * order.bagKg)} kg no total</p>
+    {batches.map(({ label, scale }) => <section key={label}>
+      <h3>{label}</h3>
+      {plan.stages.map((stage) => <div key={stage.stage}>
+        <h4>Misturador {stage.stage}</h4>
+        <table className="data-table"><thead><tr><th>Ordem de adição</th><th>Pesar (kg)</th><th>Acumulado (kg)</th></tr></thead>
+          <tbody>{stage.rows.map((row, index) => <tr key={index}>
+            <td>{index + 1}. {row.name}</td><td>{kg(row.kg * scale)}</td><td>{kg(row.accumulatedKg * scale)}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>)}
+    </section>)}
+  </>;
 }
 
 function Stock() {
