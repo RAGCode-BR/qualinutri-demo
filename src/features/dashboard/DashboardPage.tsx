@@ -1,11 +1,10 @@
-import { RealSellers } from "../reports-center/RealSellers";
 import { useMemo, useState, type DragEvent } from "react";
 import { ArrowUpRight, CalendarClock, Sparkles } from "lucide-react";
 import { useAuth } from "../../app/AuthProvider";
 import { useNavigate } from "../../app/NavigationContext";
 import { canAccessTab, tabLabels } from "../../layouts/AppSidebar";
 import { useDemoTables } from "../../demo/app/useDemoTables";
-import { cashflow, dailySales, dashboardKpis, funnelSelection, periodFor, productRanking, statusFunnel, type DrawerSelection, type Kpi, type KpiId, type PeriodKey } from "../../demo/kpis/dashboard";
+import { cashflow, dashboardKpis, funnelSelection, periodFor, statusFunnel, type DrawerSelection, type Kpi, type KpiId, type PeriodKey } from "../../demo/kpis/dashboard";
 import { attentionList, tabSummary } from "../../demo/checklist/compliance";
 import { CHECKLIST_TABS } from "../../demo/checklist/tabs";
 import { Ring, toneFor } from "../checklist/shared";
@@ -19,6 +18,9 @@ import { useQuoteEditing } from "../../app/QuoteEditingContext";
 import { formatKpi } from "../../components/demo/format";
 import { useCountUp } from "../../components/demo/useCountUp";
 import type { TabId } from "../../layouts/AppSidebar";
+import { REAL_KPI_IDS, realDaySelection, realMonthNet, realProductRanking, realRecentDocs, withRealKpis } from "../../demo/history/dashboard";
+import { customerName, sellerName } from "../../demo/history/sales";
+import { HistoryDetail, type HistorySelection } from "../reports-center/HistoryDetail";
 
 const ORDER_KEY = "qualinutri-demo:dashboard-order";
 const periodLabels: Record<PeriodKey, string> = { today: "Hoje", "7d": "7 dias", month: "Mês" };
@@ -50,10 +52,11 @@ export function DashboardPage() {
   const [dragId, setDragId] = useState<KpiId | null>(null);
   const [drawer, setDrawer] = useState<OpenDrawer | null>(null);
   const [sheet, setSheet] = useState<OpenSheet | null>(null);
+  const [detail, setDetail] = useState<HistorySelection | null>(null);
   const now = demoToday();
   const period = periodFor(periodKey, now);
 
-  const kpis = useMemo(() => dashboardKpis(tables, period, now), [tables, period.from, period.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  const kpis = useMemo(() => withRealKpis(dashboardKpis(tables, period, now), period, now), [tables, period.from, period.to]); // eslint-disable-line react-hooks/exhaustive-deps
   const sales = kpis.find((kpi) => kpi.id === "sales")!;
   const cards = useMemo(() => {
     const rest = kpis.filter((kpi) => kpi.id !== "sales");
@@ -65,12 +68,12 @@ export function DashboardPage() {
     });
   }, [kpis, order]);
 
-  const trend = useMemo(() => dailySales(tables, now), [tables]); // eslint-disable-line react-hooks/exhaustive-deps
+  const trend = sales.trend; // eslint-disable-line react-hooks/exhaustive-deps
   const trendLabels = trend.map((_, index) => isoDate(addDays(now, index - trend.length + 1)).split("-").reverse().slice(0, 2).join("/"));
-  const ranking = useMemo(() => productRanking(tables, period).slice(0, 5), [tables, period.from, period.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ranking = useMemo(() => realProductRanking().slice(0, 5), []);
   const funnel = statusFunnel(tables, period);
   const weeks = useMemo(() => cashflow(tables, now, 28), [tables]); // eslint-disable-line react-hooks/exhaustive-deps
-  const recent = [...tables.quotes].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 6);
+  const recent = realRecentDocs(6);
   const animatedSales = useCountUp(sales.value, 1100);
   const name = (profile?.displayName || profile?.login || "").split(" ")[0];
   const compliance = useMemo(() => {
@@ -104,10 +107,8 @@ export function DashboardPage() {
   }
 
   function open(kpi: Kpi) {
-    if (kpi.id === "topProduct") {
-      const leader = ranking[0];
-      if (leader) { setSheet({ kind: "product", name: leader.name }); return; }
-    }
+    if (kpi.id === "topProduct" && ranking[0]) { setDetail({ kind: "product", code: ranking[0].code, unit: ranking[0].unit }); return; }
+    if (REAL_KPI_IDS.has(kpi.id)) { setDrawer({ selection: kpi.selection, target: kpi.target }); return; }
     setSheet({ kind: "kpi", kpi });
   }
 
@@ -116,12 +117,9 @@ export function DashboardPage() {
     setDrawer({ selection: kpi.selection, target: kpi.target });
   }
 
-  const statusLabel: Record<string, string> = { draft: "Rascunho", issued: "Enviado", approved: "Aprovado", cancelled: "Cancelado", expired: "Expirado" };
 
   return (
     <div className="dashboard">
-      <RealSellers />
-      <p className="field-hint">Indicadores abaixo: operações simuladas da demo, no período selecionado.</p>
       <section className="dash-hero glass-dark">
         <div className="dash-hero-top">
           <div>
@@ -135,16 +133,16 @@ export function DashboardPage() {
           </div>
         </div>
         <button type="button" className="dash-hero-main" onClick={() => open(sales)}>
-          <span className="dash-hero-label">Vendas aprovadas · {periodLabels[periodKey].toLowerCase()}</span>
+          <span className="dash-hero-label">Vendas líquidas · {periodLabels[periodKey].toLowerCase()} · TGA</span>
           <strong className="dash-hero-value">{formatKpi(animatedSales, "currency")}</strong>
           <span className="dash-hero-caption">{sales.caption} · clique para ver a lista <ArrowUpRight size={15} aria-hidden="true" /></span>
         </button>
-        <AreaChart values={trend} labels={trendLabels} onSelect={(index) => setSheet({ kind: "day", day: isoDate(addDays(now, index - trend.length + 1)) })} />
+        <AreaChart values={trend} labels={trendLabels} onSelect={(index) => setDrawer({ selection: realDaySelection(isoDate(addDays(now, index - trend.length + 1))), target: "sellers" })} />
       </section>
 
       {(() => {
         const monthKey = isoDate(now).slice(0, 7);
-        const billed = tables.quotes.filter((quote) => quote.status === "approved" && quote.approved_at && isoDate(new Date(quote.approved_at)).startsWith(monthKey)).reduce((sum, quote) => sum + quote.product_subtotal, 0);
+        const billed = realMonthNet(monthKey);
         const goal = tables.erp.monthlyGoal;
         const missing = Math.max(0, goal - billed);
         const days = Math.max(1, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate());
@@ -177,13 +175,13 @@ export function DashboardPage() {
       <div className="dash-columns">
         <section className="dash-card">
           <header className="dash-card-head">
-            <h2>Produtos mais vendidos</h2>
+            <h2>Produtos mais vendidos · 01–13/11</h2>
             <button type="button" className="link-button" onClick={() => open(kpis.find((kpi) => kpi.id === "topProduct")!)}>Ver ranking</button>
           </header>
           <BarList
-            format="number"
-            items={ranking.map((item) => ({ label: item.name, value: item.bags, sub: `${formatKpi(item.tons, "tons")} · ${formatKpi(item.revenue, "currency", true)}` }))}
-            onSelect={(index) => setSheet({ kind: "product", name: ranking[index].name })}
+            format="currency"
+            items={ranking.map((item) => ({ label: item.name, value: item.value, sub: `${item.quantity.toLocaleString("pt-BR")} ${item.unit}` }))}
+            onSelect={(index) => setDetail({ kind: "product", code: ranking[index].code, unit: ranking[index].unit })}
           />
         </section>
 
@@ -232,19 +230,19 @@ export function DashboardPage() {
 
         <section className="dash-card">
           <header className="dash-card-head">
-            <h2>Movimentação recente</h2>
-            {canAccessTab("quotes", profile) && <button type="button" className="link-button" onClick={() => navigate("quotes")}>Abrir {tabLabels.quotes}</button>}
+            <h2>Vendas recentes</h2>
+            {canAccessTab("sellers", profile) && <button type="button" className="link-button" onClick={() => navigate("sellers")}>Abrir {tabLabels.sellers}</button>}
           </header>
           <ul className="activity">
-            {recent.map((quote, index) => (
-              <li key={quote.id} style={{ animationDelay: `${index * 60}ms` }}>
-                <button type="button" onClick={() => setSheet({ kind: "quote", id: quote.id })}>
-                  <span className={`activity-dot is-${quote.status}`} aria-hidden="true" />
+            {recent.map((doc, index) => (
+              <li key={`${doc.document}-${doc.customerCode}`} style={{ animationDelay: `${index * 60}ms` }}>
+                <button type="button" onClick={() => setDetail({ kind: "document", document: doc.document, customerCode: doc.customerCode })}>
+                  <span className={`activity-dot is-${doc.net < 0 ? "cancelled" : "approved"}`} aria-hidden="true" />
                   <span className="activity-text">
-                    <strong>#{quote.quote_number} · {quote.customer_name_snapshot ?? "Sem cliente"}</strong>
-                    <small><CalendarClock size={12} aria-hidden="true" /> {new Date(quote.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} · {statusLabel[quote.status] ?? quote.status}</small>
+                    <strong>{doc.document} · {customerName(doc)}</strong>
+                    <small><CalendarClock size={12} aria-hidden="true" /> {doc.date.split("-").reverse().slice(0, 2).join("/")} · {sellerName(doc.seller)} · {doc.status || "sem status"}</small>
                   </span>
-                  <span className="activity-value">{formatKpi(quote.grand_total, "currency", true)}</span>
+                  <span className="activity-value">{formatKpi(doc.net, "currency", true)}</span>
                 </button>
               </li>
             ))}
@@ -268,6 +266,7 @@ export function DashboardPage() {
       {sheet?.kind === "product" && <ProductSheet tables={tables} productName={sheet.name} from={period.from} to={period.to} onOpen={() => { setSheet(null); navigate("prices"); }} onClose={() => setSheet(null)} />}
       {sheet?.kind === "day" && <DaySheet tables={tables} day={sheet.day} onOpenQuote={(id) => setSheet({ kind: "quote", id })} onClose={() => setSheet(null)} />}
       {sheet?.kind === "week" && <WeekSheet tables={tables} today={now} weekIndex={sheet.index} onClose={() => setSheet(null)} />}
+      {detail && <HistoryDetail selection={detail} onSelect={setDetail} onSeller={() => { setDetail(null); navigate("sellers"); }} onClose={() => setDetail(null)} />}
       {drawer && (
         <DetailDrawer
           selection={drawer.selection}
